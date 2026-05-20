@@ -1140,10 +1140,14 @@ const LANG = {
 };
 
 /* ================================================================
-   📢 운영자 공지 카드
-   — ADMIN_NOTICES 배열만 수정하면 공지 내용 변경 가능
+   📢 운영자 공지
+   — DEFAULT_NOTICES: 코드 기본값 (localStorage 없을 때 사용)
+   — vb_notices: localStorage 키 (관리자 편집 내용 저장)
 ================================================================ */
-const ADMIN_NOTICES = [
+const NOTICE_STORE = 'vb_notices';
+const ADMIN_PW = 'visago2025';
+
+const DEFAULT_NOTICES = [
   {
     id:1, urgent: true,
     date:'2025.05.20',
@@ -1158,30 +1162,246 @@ const ADMIN_NOTICES = [
   },
 ];
 
-function NoticeSection({ lang }) {
-  const [idx, setIdx] = useState(0);
+function loadNotices() {
+  try {
+    const raw = localStorage.getItem(NOTICE_STORE);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return DEFAULT_NOTICES;
+}
+function saveNotices(arr) {
+  localStorage.setItem(NOTICE_STORE, JSON.stringify(arr));
+}
 
-  useEffect(() => {
-    const t = setInterval(() => {
-      setIdx(i => (i + 1) % ADMIN_NOTICES.length);
-    }, 4000);
-    return () => clearInterval(t);
-  }, []);
+/* ── 공지 상세 모달 ── */
+function NoticeDetailModal({ notice, lang, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="relative w-full max-w-lg bg-white rounded-t-2xl px-5 pt-5 pb-8 fade-in"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${notice.urgent ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+            {notice.urgent ? '🔴 중요 공지' : '📢 일반 공지'}
+          </span>
+          <span className="text-[11px] text-gray-400">{notice.date}</span>
+        </div>
+        <p className="text-[15px] text-gray-800 font-medium leading-relaxed word-keep whitespace-pre-wrap">
+          {notice[lang]}
+        </p>
+        <button
+          onClick={onClose}
+          className="mt-5 w-full bg-blue-700 text-white font-bold py-3 rounded-xl tap"
+        >
+          닫기
+        </button>
+      </div>
+    </div>
+  );
+}
 
-  const n = ADMIN_NOTICES[idx];
+/* ── 관리자 공지 편집 모달 ── */
+function NoticeAdminModal({ notices, lang, onSave, onClose }) {
+  const [list, setList] = useState(notices.map(n => ({ ...n })));
+
+  function update(idx, field, val) {
+    setList(prev => prev.map((n, i) => i === idx ? { ...n, [field]: val } : n));
+  }
+  function addNotice() {
+    const newId = Math.max(...list.map(n => n.id), 0) + 1;
+    setList(prev => [...prev, { id: newId, urgent: false, date: new Date().toLocaleDateString('ko-KR').replace(/\. /g,'.').replace('.',''), ko: '', vi: '' }]);
+  }
+  function removeNotice(idx) {
+    if (list.length <= 1) return alert('공지는 최소 1개 이상 있어야 합니다.');
+    setList(prev => prev.filter((_,i) => i !== idx));
+  }
 
   return (
-    <div className="bg-blue-700 px-4 py-2.5 flex items-center gap-2.5">
-      <span className={`flex-shrink-0 text-[9px] font-black text-blue-700 px-1.5 py-0.5 rounded-full ${n.urgent ? 'bg-yellow-400' : 'bg-blue-200 text-white'}`}>
-        {n.urgent ? '🔴 중요' : '📢 공지'}
-      </span>
-      <p className="flex-1 text-[11px] text-white font-medium truncate word-keep">
-        {n[lang]}
-      </p>
-      <span className="flex-shrink-0 text-[10px] text-blue-300 font-bold">
-        {idx + 1}/{ADMIN_NOTICES.length}
-      </span>
+    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60" />
+      <div
+        className="relative w-full max-w-lg bg-white rounded-t-2xl px-4 pt-5 pb-8 fade-in overflow-y-auto max-h-[85vh]"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-black text-gray-800">🔧 공지 관리</h2>
+          <button onClick={onClose} className="text-gray-400 text-xl font-bold">✕</button>
+        </div>
+
+        {list.map((n, i) => (
+          <div key={n.id} className="mb-4 bg-gray-50 rounded-xl p-3 border border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-gray-500">공지 {i+1}</span>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1 text-xs text-red-500 font-bold cursor-pointer">
+                  <input type="checkbox" checked={n.urgent} onChange={e => update(i,'urgent',e.target.checked)} className="w-3 h-3" />
+                  중요
+                </label>
+                <button onClick={() => removeNotice(i)} className="text-red-400 text-xs font-bold tap">삭제</button>
+              </div>
+            </div>
+            <input
+              type="date"
+              value={n.date.replace(/\./g,'-')}
+              onChange={e => update(i,'date', e.target.value.replace(/-/g,'.'))}
+              className="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 mb-2"
+            />
+            <textarea
+              rows={3}
+              placeholder="한국어 공지 내용"
+              value={n.ko}
+              onChange={e => update(i,'ko',e.target.value)}
+              className="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 mb-2 resize-none"
+            />
+            <textarea
+              rows={3}
+              placeholder="베트남어 공지 내용 (Nội dung thông báo tiếng Việt)"
+              value={n.vi}
+              onChange={e => update(i,'vi',e.target.value)}
+              className="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 resize-none"
+            />
+          </div>
+        ))}
+
+        <button onClick={addNotice} className="w-full border-2 border-dashed border-blue-300 text-blue-500 font-bold text-sm py-2.5 rounded-xl mb-3 tap">
+          + 공지 추가
+        </button>
+        <button
+          onClick={() => { onSave(list); onClose(); }}
+          className="w-full bg-blue-700 text-white font-black py-3 rounded-xl tap"
+        >
+          저장하기
+        </button>
+      </div>
     </div>
+  );
+}
+
+/* ── 관리자 비밀번호 입력 모달 ── */
+function AdminPwModal({ onSuccess, onClose }) {
+  const [pw, setPw] = useState('');
+  const [err, setErr] = useState(false);
+
+  function check() {
+    if (pw === ADMIN_PW) { onSuccess(); }
+    else { setErr(true); setPw(''); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-6" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div className="relative bg-white rounded-2xl p-6 w-full max-w-xs fade-in" onClick={e => e.stopPropagation()}>
+        <h3 className="text-base font-black text-gray-800 mb-1 text-center">관리자 확인</h3>
+        <p className="text-xs text-gray-400 text-center mb-4">비밀번호를 입력하세요</p>
+        <input
+          type="password"
+          value={pw}
+          onChange={e => { setPw(e.target.value); setErr(false); }}
+          onKeyDown={e => e.key === 'Enter' && check()}
+          placeholder="비밀번호"
+          className={`w-full border-2 rounded-xl px-3 py-2.5 text-sm text-center mb-1 outline-none ${err ? 'border-red-400' : 'border-gray-300 focus:border-blue-500'}`}
+          autoFocus
+        />
+        {err && <p className="text-xs text-red-500 text-center mb-2">비밀번호가 틀렸습니다.</p>}
+        <div className="flex gap-2 mt-3">
+          <button onClick={onClose} className="flex-1 border border-gray-300 text-gray-600 font-bold py-2.5 rounded-xl text-sm tap">취소</button>
+          <button onClick={check} className="flex-1 bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm tap">확인</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 메인 NoticeSection ── */
+function NoticeSection({ lang }) {
+  const [notices, setNotices] = useState(() => loadNotices());
+  const [idx, setIdx] = useState(0);
+  const [detail, setDetail] = useState(null);      // 상세 보기 중인 공지
+  const [showPw, setShowPw] = useState(false);      // 비밀번호 모달
+  const [showAdmin, setShowAdmin] = useState(false); // 관리자 편집 모달
+  const [tapCount, setTapCount] = useState(0);       // 숨겨진 관리자 접근용 (카운터 5번)
+  const tapTimer = useRef(null);
+
+  useEffect(() => {
+    if (notices.length === 0) return;
+    const t = setInterval(() => {
+      setIdx(i => (i + 1) % notices.length);
+    }, 4000);
+    return () => clearInterval(t);
+  }, [notices.length]);
+
+  function handleBannerClick() {
+    setDetail(notices[idx]);
+  }
+
+  /* 날짜 표시 5번 탭 → 관리자 모달 (숨겨진 접근) */
+  function handleCounterTap() {
+    setTapCount(c => {
+      const next = c + 1;
+      clearTimeout(tapTimer.current);
+      if (next >= 5) {
+        setShowPw(true);
+        return 0;
+      }
+      tapTimer.current = setTimeout(() => setTapCount(0), 2000);
+      return next;
+    });
+  }
+
+  function handleAdminSave(updated) {
+    const cleaned = updated.filter(n => n.ko.trim() || n.vi.trim());
+    saveNotices(cleaned);
+    setNotices(cleaned);
+    setIdx(0);
+  }
+
+  if (notices.length === 0) return null;
+  const n = notices[idx];
+
+  return (
+    <>
+      <div
+        className="bg-blue-700 px-4 py-2.5 flex items-center gap-2.5 cursor-pointer active:bg-blue-800 transition-colors"
+        onClick={handleBannerClick}
+      >
+        <span className={`flex-shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-full ${n.urgent ? 'bg-yellow-400 text-blue-800' : 'bg-blue-500 text-white'}`}>
+          {n.urgent ? '🔴 중요' : '📢 공지'}
+        </span>
+        <p className="flex-1 text-[11px] text-white font-medium truncate word-keep">
+          {n[lang]}
+        </p>
+        <span
+          className="flex-shrink-0 text-[10px] text-blue-300 font-bold select-none"
+          onClick={e => { e.stopPropagation(); handleCounterTap(); }}
+        >
+          {idx + 1}/{notices.length}
+        </span>
+      </div>
+
+      {detail && (
+        <NoticeDetailModal
+          notice={detail}
+          lang={lang}
+          onClose={() => setDetail(null)}
+        />
+      )}
+      {showPw && (
+        <AdminPwModal
+          onSuccess={() => { setShowPw(false); setShowAdmin(true); }}
+          onClose={() => setShowPw(false)}
+        />
+      )}
+      {showAdmin && (
+        <NoticeAdminModal
+          notices={notices}
+          lang={lang}
+          onSave={handleAdminSave}
+          onClose={() => setShowAdmin(false)}
+        />
+      )}
+    </>
   );
 }
 

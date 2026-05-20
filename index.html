@@ -1,0 +1,2144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visa Buddy — D-9 → E-7-4</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ["'Noto Sans KR'","sans-serif"] } } } }</script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { font-family: 'Noto Sans KR', sans-serif; }
+    body { background: #F0F2F5; }
+    .word-keep  { word-break: keep-all; }
+    .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .tap { transition: transform .12s; } .tap:active { transform: scale(.95); }
+    .fade-in { animation: fadeIn .2s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    /* 스켈레톤 */
+    .skeleton { background: linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);
+                background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+/* ================================================================
+   Visa Buddy — D-9 → E-7-4  |  완전 기능 구현 버전
+   React 18 CDN + Babel Standalone + Tailwind CDN
+================================================================ */
+const { useState, useEffect, useCallback, useRef } = React;
+
+/* ── 상수 ──────────────────────────────────────────────────── */
+const BOARD_STORE = 'vb_posts_v2';
+const ANONS = ['하노이 출신','호치민 출신','다낭 출신','제조업 종사자','비자 도전 중','서류 준비 중','D-9 유저','출입국 단골','익명의 버디','베트남 멤버','비자 준비 중','출입국 도전자'];
+const AVATAR_COLORS = ['bg-blue-500','bg-green-500','bg-purple-500','bg-orange-500','bg-teal-500','bg-pink-500','bg-red-500','bg-indigo-500'];
+
+function genAuthor() { return `${ANONS[Math.floor(Math.random()*ANONS.length)]} #${Math.floor(Math.random()*900)+100}`; }
+function genColor()  { return AVATAR_COLORS[Math.floor(Math.random()*AVATAR_COLORS.length)]; }
+
+/* ────────────────────────────────────────────────────────────
+   🔒 렌더 레이어 익명화 — 2중 보안
+   저장된 author 값이 허용 패턴과 다르면 (예: 실제 이름·ID가
+   미래 백엔드에서 흘러들어올 경우) post.id 기반으로 덮어씁니다.
+   화면에는 절대 실제 개인정보가 표시되지 않습니다.
+──────────────────────────────────────────────────────────── */
+const ANON_PATTERN = new RegExp(`^(${ANONS.join('|')}) #\\d{3}$`);
+
+/** author 필드를 안전한 익명 닉네임으로 보장 */
+function safeAuthor(post) {
+  if (ANON_PATTERN.test(post.author)) return post.author;
+  // 패턴 불일치(실제 ID 유입 등) → post.id 기반 결정론적 익명
+  const seed = Math.abs(typeof post.id === 'number' ? post.id : parseInt(post.id, 10) || 1);
+  return `${ANONS[seed % ANONS.length]} #${(seed % 900) + 100}`;
+}
+/** 아바타 문자: author 첫 글자 대신 post.id 기반으로 고정 */
+function safeAvatarChar(post) {
+  const seed = Math.abs(typeof post.id === 'number' ? post.id : parseInt(post.id, 10) || 1);
+  return ['익','D','V','하','H','버','A','B'][seed % 8];
+}
+/** 아바타 색상: post.id 기반 결정론적 색상 */
+function safeAvatarColor(post) {
+  const seed = Math.abs(typeof post.id === 'number' ? post.id : parseInt(post.id, 10) || 1);
+  return AVATAR_COLORS[seed % AVATAR_COLORS.length];
+}
+
+/* ── 기본 게시글 ─────────────────────────────────────────────
+   isPublic: true 명시 필수 — 없으면 PostCard가 전부 비공개 처리함
+────────────────────────────────────────────────────────────── */
+function defaultPosts() {
+  return [
+    { id:1, cat:'hall',   author:'하노이 출신 #129', date:'2025.05.08', isNew:true,  isPublic:true,
+      title:'제조업 4년 2개월, 토픽 3급 → E-7-4 합격!! 🎉',
+      body:'드디어 받았습니다!! 점수 214점 (고용주 추천서 30점 포함), 동일 사업장 4년 2개월, 어학 토픽 3급. 사회통합프로그램 5단계 꼭 이수하세요!',
+      likes:31, hearts:12, wows:4, comments:8 },
+    { id:2, cat:'hall',   author:'다낭 출신 #305',   date:'2025.05.03', isNew:false, isPublic:true,
+      title:'소득 2.5배 넘기고 한방에 통과 💪 사회통합 5단계가 결정적',
+      body:'3번 도전 끝에 성공! 세후 실수령액 기준이라는 걸 몰라서 두 번 탈락했습니다.',
+      likes:24, hearts:9, wows:6, comments:15 },
+    { id:3, cat:'sos',    author:'서류 준비 중 #847', date:'2025.05.07', isNew:true,  isPublic:true,
+      title:'내일 출입국인데 고용사유서 양식 이게 맞나요? 🆘',
+      body:'회사에서 받은 고용사유서에 업종 코드가 없는데 E-7-4 신청 시 문제없을까요?',
+      likes:5, hearts:2, wows:0, comments:12 },
+    { id:4, cat:'sos',    author:'비자 도전 중 #412', date:'2025.05.05', isNew:false, isPublic:true,
+      title:'임금대장 세전 vs 세후 — 담당자마다 기준이 달라요',
+      body:'출입국 담당자마다 말이 달라서 헷갈려요. 어느 쪽이 공식 기준인지 아시는 분?',
+      likes:8, hearts:3, wows:1, comments:20 },
+    { id:5, cat:'bamboo', author:'D-9 유저 #382',    date:'2025.05.10', isNew:true,  isPublic:true,
+      title:'수원출입국 1점 차이 반려 😭 실수령액 함정 꼭 주의하세요!',
+      body:'임금대장을 연봉 기준으로 계산했더니 담당자가 실수령액 기준이라 했어요. 12점 부족으로 불허...',
+      likes:12, hearts:7, wows:15, comments:23 },
+    { id:6, cat:'bamboo', author:'출입국 단골 #291',  date:'2025.05.04', isNew:false, isPublic:true,
+      title:'인천 vs 수원 출입국 심사 난이도 솔직 비교 (2025 최신)',
+      body:'두 곳 다 경험했어요. 담당자 성향도 다르고 요구 서류도 미묘하게 달랐습니다.',
+      likes:19, hearts:8, wows:5, comments:31 },
+    /* ── 자유 토크방 샘플 ── */
+    { id:7, cat:'talk', author:'베트남 멤버 #551', date:'2025.05.11', isNew:true, isPublic:true,
+      title:'한국어 공부하는데 좋은 앱 추천해줘요! 😊',
+      body:'D-9 비자로 온지 8개월됐는데 한국어 실력 늘리고 싶어요. 좋은 방법 있으면 공유해주세요!',
+      likes:7, hearts:3, wows:0, comments:5 },
+    { id:8, cat:'talk', author:'하노이 출신 #234', date:'2025.05.09', isNew:false, isPublic:true,
+      title:'주말에 경기도 근처 여행지 추천해주세요 🗺️',
+      body:'주말에 쉬면서 구경할 수 있는 곳 추천해주세요. 대중교통으로 갈 수 있는 곳이면 더 좋아요.',
+      likes:4, hearts:5, wows:1, comments:3 },
+    { id:9, cat:'talk', author:'호치민 출신 #789', date:'2025.05.06', isNew:false, isPublic:true,
+      title:'월급날 환전 꿀팁 공유! 수수료 아끼는 방법 💸',
+      body:'카카오뱅크 앱에서 베트남 동으로 환전하면 일반 은행보다 수수료가 훨씬 저렴해요. 제가 직접 써본 방법입니다.',
+      likes:15, hearts:8, wows:3, comments:11 },
+    { id:10, cat:'talk', author:'D-9 유저 #103', date:'2025.05.03', isNew:false, isPublic:true,
+      title:'퇴근 후 혼밥 맛집 어디에요? 혼자 가도 괜찮은 곳 🍜',
+      body:'혼자 밥 먹기 편한 식당 추천해주세요. 국밥집이나 라멘집 같은 곳이면 좋겠어요.',
+      likes:9, hearts:6, wows:2, comments:8 },
+  ];
+}
+
+/* ── 더미 뉴스 (API 실패 시 폴백) ──────────────────────────── */
+const DUMMY_NEWS = [
+  { id:'n1', badge:'법무부', date:'2025.05.15', title:'E-7-4 소득 기준 2025년 최저임금으로 업데이트', hot:true,  link:'https://www.moj.go.kr' },
+  { id:'n2', badge:'출입국', date:'2025.05.12', title:'수원출입국 E-7-4 예약 6월 이후 대기 4주 — 마감 주의', hot:true, link:'https://www.hikorea.go.kr' },
+  { id:'n3', badge:'법무부', date:'2025.05.08', title:'D-9 체류자격 연장 시 임금대장 제출 서식 변경 안내', hot:false, link:'https://www.moj.go.kr' },
+  { id:'n4', badge:'고용부', date:'2025.04.28', title:'2025년 최저임금 시급 10,030원 / 월 2,096,270원 확정', hot:false, link:'https://www.moel.go.kr' },
+];
+
+/* ── 커스텀 훅: 뉴스 fetch (KO + VI 다국어 병렬 쿼리) ───────── */
+/**
+ * RSS_QUERIES: 한국어 + 베트남어 구글 뉴스 피드를 동시에 요청합니다.
+ * - KO: 법무부·출입국 공식 채널 키워드
+ * - VI: 베트남 현지 유저 관점의 한국 비자 뉴스 키워드
+ * rss2json.com API가 CORS 없이 RSS → JSON 변환을 제공합니다.
+ */
+const RSS_QUERIES = [
+  {
+    rss:   'https://news.google.com/rss/search?q=E-7-4+비자+출입국+법무부&hl=ko&gl=KR&ceid=KR:ko',
+    lang:  'KO', badge:'법무부·출입국', count: 3,
+  },
+  {
+    rss:   'https://news.google.com/rss/search?q=D-9+비자+연장+체류자격+고시&hl=ko&gl=KR&ceid=KR:ko',
+    lang:  'KO', badge:'출입국 고시', count: 2,
+  },
+  {
+    rss:   'https://news.google.com/rss/search?q=Visa+E-7-4+H%C3%A0n+Qu%E1%BB%91c+xu%E1%BA%A5t+nh%E1%BA%ADp+c%E1%BA%A3nh&hl=vi&gl=VN&ceid=VN:vi',
+    lang:  'VI', badge:'🇻🇳 베트남 뉴스', count: 2,
+  },
+  {
+    rss:   'https://news.google.com/rss/search?q=Gia+h%E1%BA%A1n+visa+D-9+H%C3%A0n+Qu%E1%BB%91c+lao+%C4%91%E1%BB%99ng&hl=vi&gl=VN&ceid=VN:vi',
+    lang:  'VI', badge:'🇻🇳 D-9 gia hạn', count: 2,
+  },
+];
+
+function useNews() {
+  const [news, setNews]       = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isLive, setIsLive]   = useState(false);
+  const [errMsg, setErrMsg]   = useState('');
+
+  /** 단일 RSS 쿼리를 fetch → 아이템 배열 반환 (실패 시 빈 배열) */
+  async function fetchOneFeed(q, signal) {
+    const API = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(q.rss)}&count=${q.count}`;
+    const res  = await fetch(API, { signal });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (data.status !== 'ok' || !data.items?.length) return [];
+    return data.items.map(item => ({
+      id:    item.guid || item.link,
+      badge: q.badge,
+      lang:  q.lang,
+      date:  new Date(item.pubDate).toLocaleDateString('ko-KR'),
+      // 구글 뉴스 출처 suffix(" - 조선일보" 등) 제거
+      title: item.title.replace(/ - [^-]{2,30}$/, '').trim(),
+      hot:   false,
+      link:  item.link,
+    }));
+  }
+
+  /**
+   * fetchVisaNews
+   * 4개 RSS 쿼리(한국어 2 + 베트남어 2)를 Promise.allSettled로
+   * 병렬 요청한 뒤 KO·VI를 교차 인터리빙하여 섞어서 반환합니다.
+   * 타임아웃 8초 → 실패 시 DUMMY_NEWS 폴백.
+   */
+  const fetchVisaNews = useCallback(async () => {
+    setLoading(true);
+    setErrMsg('');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const results = await Promise.allSettled(
+        RSS_QUERIES.map(q => fetchOneFeed(q, controller.signal))
+      );
+      const koItems = results.filter((r,i)=>r.status==='fulfilled'&&RSS_QUERIES[i].lang==='KO').flatMap(r=>r.value);
+      const viItems = results.filter((r,i)=>r.status==='fulfilled'&&RSS_QUERIES[i].lang==='VI').flatMap(r=>r.value);
+
+      // KO·VI 교차 인터리빙: [KO, VI, KO, VI, ...]
+      const merged = [];
+      const maxLen = Math.max(koItems.length, viItems.length);
+      for (let i = 0; i < maxLen; i++) {
+        if (koItems[i]) merged.push(koItems[i]);
+        if (viItems[i]) merged.push(viItems[i]);
+      }
+      // HOT 표시: 가장 최신 2건
+      merged.slice(0, 2).forEach(n => { n.hot = true; });
+
+      if (!merged.length) throw new Error('모든 피드 비어있음');
+      setNews(merged);
+      setIsLive(true);
+    } catch (e) {
+      setErrMsg(e.name === 'AbortError' ? '연결 시간 초과' : e.message);
+      setNews(DUMMY_NEWS);
+      setIsLive(false);
+    } finally {
+      clearTimeout(timer);
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchVisaNews(); }, [fetchVisaNews]);
+  return { news, loading, isLive, errMsg, refetch: fetchVisaNews };
+}
+
+/* ── 커스텀 훅: 게시글 (LocalStorage) ──────────────────────── */
+function usePosts() {
+  const [posts, setPosts] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(BOARD_STORE));
+      if (!stored) return defaultPosts();
+      // 구버전 데이터 마이그레이션: isPublic 없는 글 → 공개 처리
+      return stored.map(p => p.isPublic !== undefined ? p : { ...p, isPublic: true });
+    }
+    catch { return defaultPosts(); }
+  });
+  const save = (next) => { setPosts(next); localStorage.setItem(BOARD_STORE, JSON.stringify(next)); };
+  const addPost    = (p)         => save([p, ...posts]);
+  const deletePost = (id)        => save(posts.filter(p => p.id !== id));
+  const updatePost = (id, edits) => save(posts.map(p => p.id === id ? { ...p, ...edits } : p));
+
+  function addComment(postId, comment) {
+    save(posts.map(p => {
+      if (p.id !== postId) return p;
+      const list = [...(p.commentsData || []), comment];
+      return { ...p, commentsData: list, comments: list.length };
+    }));
+  }
+  function deleteComment(postId, commentId) {
+    save(posts.map(p => {
+      if (p.id !== postId) return p;
+      const list = (p.commentsData || []).filter(c => c.id !== commentId);
+      return { ...p, commentsData: list, comments: list.length };
+    }));
+  }
+
+  return { posts, addPost, deletePost, updatePost, addComment, deleteComment };
+}
+
+/* ================================================================
+   공용 UI 컴포넌트
+================================================================ */
+
+/* 뒤로가기 헤더 */
+function BackHeader({ title, onBack, rightSlot }) {
+  return (
+    <header className="bg-white sticky top-0 z-50 shadow-sm">
+      <div className="max-w-lg mx-auto px-4 h-14 flex items-center gap-3">
+        <button onClick={onBack}
+          className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-600 text-2xl leading-none transition tap">
+          ‹
+        </button>
+        <h1 className="text-sm font-black text-gray-800 flex-1 word-keep">{title}</h1>
+        {rightSlot}
+      </div>
+    </header>
+  );
+}
+
+/* 토스트 알림 */
+function Toast({ msg, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 2400); return () => clearTimeout(t); }, []);
+  return (
+    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs font-bold px-5 py-3 rounded-full shadow-xl z-50 whitespace-nowrap fade-in">
+      {msg}
+    </div>
+  );
+}
+
+/* 비밀번호 확인 모달 */
+function PwModal({ lang, onConfirm, onCancel }) {
+  const [pw, setPw]   = useState('');
+  const [err, setErr] = useState(false);
+  const L = LANG[lang];
+  function confirm() {
+    onConfirm(pw, () => setErr(true));
+  }
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center fade-in" onClick={onCancel}>
+      <div className="bg-white rounded-t-3xl w-full max-w-lg px-6 pt-6 pb-10 shadow-2xl" onClick={e=>e.stopPropagation()}>
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5"></div>
+        <p className="text-sm font-black text-gray-800 mb-1 text-center">{L.pwModalTitle}</p>
+        <p className="text-xs text-gray-400 mb-4 text-center">{L.pwModalSub}</p>
+        <input
+          type="password" inputMode="numeric" maxLength={4}
+          value={pw}
+          onChange={e => { setPw(e.target.value.replace(/\D/g,'')); setErr(false); }}
+          placeholder={L.pwPlaceholder}
+          className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-blue-700 mb-2 transition"
+          autoFocus
+        />
+        {err && <p className="text-xs text-red-500 text-center mb-2 fade-in">{L.pwWrong}</p>}
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          <button onClick={onCancel}
+            className="py-3.5 border border-gray-200 rounded-2xl text-sm font-bold text-gray-500 bg-white tap transition">
+            {L.pwCancel}
+          </button>
+          <button onClick={confirm}
+            className="py-3.5 bg-blue-700 text-white rounded-2xl text-sm font-black tap transition">
+            {L.pwConfirm}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   댓글 섹션 — PostCard / TalkListView 공용
+================================================================ */
+function CommentSection({ post, lang, onAddComment, onDeleteComment }) {
+  const L = LANG[lang];
+  const comments = post.commentsData || [];
+
+  const [body, setBody]       = useState('');
+  const [pw,   setPw]         = useState('');
+  const [delModal, setDelModal] = useState(null); // comment object to delete
+
+  function submit() {
+    if (!body.trim()) return;
+    onAddComment(post.id, {
+      id:     Date.now(),
+      author: genAuthor(),
+      date:   new Date().toLocaleDateString('ko-KR'),
+      body:   body.trim(),
+      pw:     pw.length === 4 ? pw : null,
+    });
+    setBody('');
+    setPw('');
+  }
+
+  function handleDelConfirm(entered, onFail) {
+    if (!delModal) return;
+    if (!delModal.pw || entered !== delModal.pw) { onFail(); return; }
+    onDeleteComment(post.id, delModal.id);
+    setDelModal(null);
+  }
+
+  return (
+    <div className="border-t border-gray-100 bg-gray-50">
+      {/* 댓글 목록 */}
+      {comments.length === 0 ? (
+        <p className="text-xs text-gray-400 text-center py-4">{L.cmtEmpty}</p>
+      ) : (
+        <ul className="divide-y divide-gray-100">
+          {comments.map(c => (
+            <li key={c.id} className="flex items-start gap-2.5 px-4 py-3">
+              <div className={`w-7 h-7 rounded-full ${safeAvatarColor({id:c.id})} flex items-center justify-center text-white text-xs font-black flex-shrink-0`}>
+                {safeAvatarChar({id:c.id})}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-[11px] font-bold text-gray-700">{c.author}</p>
+                  <p className="text-[10px] text-gray-400">{c.date}</p>
+                  {c.pw && (
+                    <button onClick={() => setDelModal(c)}
+                      className="ml-auto text-[10px] text-red-400 hover:text-red-600 border border-red-100 hover:border-red-300 px-1.5 py-0.5 rounded tap transition">
+                      {L.cmtDelete}
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-600 word-keep leading-relaxed">{c.body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* 댓글 작성 폼 */}
+      <div className="px-4 pb-4 pt-2">
+        <textarea
+          value={body}
+          onChange={e => setBody(e.target.value)}
+          placeholder={L.cmtPlaceholder}
+          rows={2}
+          className="w-full text-xs text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-400 placeholder-gray-300 resize-none leading-relaxed"
+        />
+        <div className="flex gap-2 mt-2">
+          <input
+            type="password" inputMode="numeric" maxLength={4}
+            value={pw}
+            onChange={e => setPw(e.target.value.replace(/\D/g, ''))}
+            placeholder={L.cmtPwPlaceholder}
+            className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-400 tracking-widest text-center"
+          />
+          <button
+            onClick={submit}
+            disabled={!body.trim()}
+            className="px-4 py-2 bg-blue-700 text-white text-xs font-black rounded-xl disabled:opacity-40 tap transition">
+            {L.cmtSubmit}
+          </button>
+        </div>
+        <p className="text-[10px] text-gray-300 mt-1.5">{L.cmtPwNote}</p>
+      </div>
+
+      {/* 댓글 삭제 비밀번호 모달 */}
+      {delModal && (
+        <PwModal lang={lang} onConfirm={handleDelConfirm} onCancel={() => setDelModal(null)} />
+      )}
+    </div>
+  );
+}
+
+/* 스켈레톤 행 */
+function SkeletonRow() {
+  return (
+    <div className="flex items-start gap-2.5 py-2.5">
+      <div className="w-10 h-4 skeleton rounded flex-shrink-0 mt-1"></div>
+      <div className="flex-1">
+        <div className="h-3 skeleton rounded mb-1.5"></div>
+        <div className="h-3 skeleton rounded w-2/3"></div>
+      </div>
+    </div>
+  );
+}
+
+/* 게시글 카드 */
+function PostCard({ post, lang = 'vi', onDelete, onEdit, onAddComment, onDeleteComment }) {
+  const [r, setR]           = useState({ likes:post.likes, hearts:post.hearts, wows:post.wows });
+  const [act, setAct]       = useState(null);
+  const [modal, setModal]   = useState(null); // 'edit' | 'delete' | 'view' | null
+  const [unlocked, setUnlocked] = useState(false);
+  const [showCmt, setShowCmt]   = useState(false);
+  const L = LANG[lang];
+
+  function react(type) {
+    const same = act === type;
+    setR(p => {
+      const n = { ...p };
+      if (same) { n[type] = Math.max(0, n[type]-1); }
+      else { if (act) n[act] = Math.max(0, n[act]-1); n[type]++; }
+      return n;
+    });
+    setAct(same ? null : type);
+  }
+
+  function handlePwConfirm(pw, onFail) {
+    if (!post.pw || pw !== post.pw) { onFail(); return; }
+    if (modal === 'delete') {
+      setModal(null);
+      onDelete && onDelete(post.id);
+    } else if (modal === 'edit') {
+      setModal(null);
+      onEdit && onEdit(post);
+    } else if (modal === 'view') {
+      setModal(null);
+      setUnlocked(true);
+    }
+  }
+
+  /* ── 비공개 글: 잠금 화면 (비번 입력하면 열람 가능) ── */
+  if (post.isPublic !== true && !unlocked) {
+    return (
+      <>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-3 border border-gray-100 fade-in">
+          <div className="px-4 py-4">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <span className="text-[10px] font-black text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">{L.privateLabel}</span>
+              <span className="text-[10px] text-gray-300 ml-auto">{post.date}</span>
+            </div>
+            <div className="bg-gray-50 rounded-xl px-4 py-3.5 flex items-start gap-2 mb-3">
+              <span className="text-base flex-shrink-0">🔒</span>
+              <p className="text-xs text-gray-400 word-keep leading-relaxed">
+                {L.privateMsg}<br/>
+                <span className="text-gray-300">{L.privateSub}</span>
+              </p>
+            </div>
+            {/* 비밀번호로 열람 버튼 */}
+            {post.pw && (
+              <button onClick={() => setModal('view')}
+                className="w-full py-2.5 border-2 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl text-xs font-black tap transition flex items-center justify-center gap-1.5">
+                🔑 {lang === 'vi' ? 'Nhập mật khẩu để xem' : '비밀번호로 열람하기'}
+              </button>
+            )}
+          </div>
+        </div>
+        {modal === 'view' && (
+          <PwModal lang={lang} onConfirm={handlePwConfirm} onCancel={() => setModal(null)} />
+        )}
+      </>
+    );
+  }
+
+  /* ── 공개 글: 전체 렌더링 ── */
+  const total    = r.likes + r.hearts + r.wows;
+  const cmtCount = (post.commentsData || []).length || post.comments || 0;
+  const BTNS = [
+    { t:'likes',  i:'👍', l:'Thích',   lko:'좋아요',  on:'text-blue-600 bg-blue-50' },
+    { t:'hearts', i:'❤️', l:'Tuyệt',   lko:'최고예요', on:'text-red-500 bg-red-50' },
+    { t:'wows',   i:'😮', l:'Wow',     lko:'놀라워요', on:'text-amber-500 bg-amber-50' },
+    { t:'cmt',    i:'💬',
+      l: cmtCount > 0 ? `${cmtCount}` : 'Bình luận',
+      lko: cmtCount > 0 ? `댓글 ${cmtCount}` : '댓글',
+      on:'text-blue-600 bg-blue-50' },
+  ];
+
+  return (
+    <>
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-3 fade-in">
+        <div className="px-4 pt-4 pb-3">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className={`w-9 h-9 rounded-full ${safeAvatarColor(post)} flex items-center justify-center text-white text-sm font-black flex-shrink-0`}>{safeAvatarChar(post)}</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-gray-800">{safeAuthor(post)}</p>
+              <p className="text-[10px] text-gray-400">{post.date}</p>
+            </div>
+            {post.isNew && <span className="text-[9px] font-black text-white bg-red-500 px-1.5 py-0.5 rounded-full">NEW</span>}
+            {/* 수정/삭제 버튼 — 비밀번호가 있는 글만 표시 */}
+            {post.pw && (
+              <div className="flex gap-1 ml-1">
+                {unlocked && (
+                  <button onClick={() => setUnlocked(false)}
+                    className="text-[10px] text-gray-400 hover:text-gray-600 border border-gray-200 px-2 py-0.5 rounded-lg tap transition">
+                    🔒
+                  </button>
+                )}
+                <button onClick={() => setModal('edit')}
+                  className="text-[10px] text-blue-400 hover:text-blue-600 border border-blue-100 hover:border-blue-300 px-2 py-0.5 rounded-lg tap transition">
+                  {L.editBtn}
+                </button>
+                <button onClick={() => setModal('delete')}
+                  className="text-[10px] text-red-400 hover:text-red-600 border border-red-100 hover:border-red-300 px-2 py-0.5 rounded-lg tap transition">
+                  {L.deleteBtn}
+                </button>
+              </div>
+            )}
+            {/* 비공개 배지 (열람 상태) */}
+            {unlocked && !post.pw && (
+              <span className="text-[9px] font-black text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full ml-1">🔒</span>
+            )}
+          </div>
+          <h3 className="text-sm font-black text-gray-900 mb-1.5 word-keep leading-snug">{post.title}</h3>
+          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 word-keep">{post.body}</p>
+        </div>
+        {total > 0 && (
+          <div className="px-4 py-1.5 border-b border-gray-100 flex items-center gap-1">
+            <span className="text-xs">👍</span>{r.hearts>0&&<span className="text-xs">❤️</span>}{r.wows>0&&<span className="text-xs">😮</span>}
+            <span className="text-[11px] text-gray-400 ml-1">{total} {L.reactions}</span>
+            <span className="text-[11px] text-gray-400 ml-auto">{L.comments} {post.comments}</span>
+          </div>
+        )}
+        <div className="grid grid-cols-4 px-1 py-0.5 border-t border-gray-100">
+          {BTNS.map(b => (
+            <button key={b.t}
+              onClick={b.t === 'cmt' ? () => setShowCmt(v => !v) : () => react(b.t)}
+              className={`tap flex flex-col items-center justify-center py-2.5 gap-0.5 rounded-xl hover:bg-gray-50 transition
+                ${b.t === 'cmt' && showCmt ? b.on : act===b.t ? b.on : 'text-gray-500'}`}>
+              <span className="text-lg leading-none">{b.i}</span>
+              <span className="text-[10px] font-bold">{lang === 'vi' ? b.l : b.lko}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 댓글 섹션 */}
+      {showCmt && (
+        <CommentSection
+          post={post} lang={lang}
+          onAddComment={onAddComment}
+          onDeleteComment={onDeleteComment} />
+      )}
+
+      {/* 비밀번호 모달 */}
+      {modal && (
+        <PwModal lang={lang}
+          onConfirm={handlePwConfirm}
+          onCancel={() => setModal(null)} />
+      )}
+    </>
+  );
+}
+
+/* ================================================================
+   자유 토크방 — 리액션 미니 버튼 (아코디언 상세 내에서 사용)
+================================================================ */
+function TalkReaction({ post, lang }) {
+  const [r, setR]   = useState({ likes:post.likes||0, hearts:post.hearts||0, wows:post.wows||0 });
+  const [act, setAct] = useState(null);
+  const ITEMS = [
+    { t:'likes',  i:'👍', vi:'Thích',    ko:'좋아요',  on:'text-blue-600' },
+    { t:'hearts', i:'❤️', vi:'Tuyệt',    ko:'최고예요', on:'text-red-500' },
+    { t:'wows',   i:'😮', vi:'Wow',      ko:'놀라워요', on:'text-amber-500' },
+  ];
+  function react(t) {
+    const same = act === t;
+    setR(p => {
+      const n = { ...p };
+      if (same) n[t] = Math.max(0, n[t]-1);
+      else { if (act) n[act] = Math.max(0, n[act]-1); n[t]++; }
+      return n;
+    });
+    setAct(same ? null : t);
+  }
+  return (
+    <div className="flex gap-1.5">
+      {ITEMS.map(b => (
+        <button key={b.t} onClick={() => react(b.t)}
+          className={`flex items-center gap-0.5 text-[10px] px-2 py-1 rounded-lg border tap transition
+            ${act===b.t ? `${b.on} bg-opacity-10 border-current` : 'text-gray-400 border-gray-200 hover:bg-gray-50'}`}>
+          <span>{b.i}</span>
+          <span className="font-bold">{r[b.t] > 0 ? r[b.t] : (lang==='vi' ? b.vi : b.ko)}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ================================================================
+   자유 토크방 — 네이버 카페 스타일 리스트 뷰
+================================================================ */
+function TalkListView({ posts, nav, lang, onDeletePost, onUpdatePost, onAddComment, onDeleteComment, onClose }) {
+  const TALK_REPORTS = 'vb_talk_reports';
+  const [selected, setSelected] = useState(null);
+  const [reported, setReported] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(TALK_REPORTS) || '[]'); }
+    catch { return []; }
+  });
+  const [pwModal, setPwModal]   = useState(null); // { action:'edit'|'delete'|'view', post }
+  const [viewUnlocked, setViewUnlocked] = useState([]); // 비공개 열람 완료 id 배열
+  const L = LANG[lang];
+
+  const talkPosts = posts.filter(p => p.cat === 'talk');
+
+  function doReport(id) {
+    if (reported.includes(id)) return;
+    const next = [...reported, id];
+    setReported(next);
+    localStorage.setItem(TALK_REPORTS, JSON.stringify(next));
+    if (selected === id) setSelected(null);
+  }
+
+  function handlePwConfirm(pw, onFail) {
+    if (!pwModal) return;
+    const { action, post } = pwModal;
+    if (!post.pw || pw !== post.pw) { onFail(); return; }
+    setPwModal(null);
+    if (action === 'delete') {
+      if (selected === post.id) setSelected(null);
+      onDeletePost && onDeletePost(post.id);
+    } else if (action === 'edit') {
+      nav({ page:'write', param:'talk', editPost:post });
+    } else if (action === 'view') {
+      setViewUnlocked(prev => [...prev, post.id]);
+    }
+  }
+
+  return (
+    <div className="fade-in">
+      {/* 토크방 서브 헤더 */}
+      <div className="bg-white shadow-sm">
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 bg-green-500 rounded-full inline-block" style={{boxShadow:'0 0 0 3px rgba(34,197,94,.2)'}}></span>
+            <div>
+              <p className="text-sm font-black text-gray-800">
+                {lang === 'vi' ? 'Góc Tán Gẫu' : '🟢 자유 토크방'}
+              </p>
+              <p className="text-[10px] text-gray-400">
+                {lang === 'vi' ? 'Tán gẫu tự do · Không liên quan đến visa' : '비자 외 자유 수다 · 일상 토크'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={() => nav({ page:'write', param:'talk' })}
+              className="text-xs font-black text-white bg-green-600 hover:bg-green-700 px-3 py-2 rounded-full shadow-sm tap transition">
+              {L.talkWriteBtn}
+            </button>
+            <button onClick={onClose}
+              className="text-[11px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-full tap transition">
+              {L.talkClose} ✕
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 게시글 리스트 */}
+      <div className="max-w-lg mx-auto mt-2 bg-white shadow-sm overflow-hidden rounded-t-2xl">
+        {/* 테이블 헤더 */}
+        <div className="grid gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100"
+          style={{gridTemplateColumns:'2rem 1fr 4.5rem 3.5rem'}}>
+          <p className="text-[10px] font-black text-gray-400 text-center">No.</p>
+          <p className="text-[10px] font-black text-gray-400">{L.talkColTitle}</p>
+          <p className="text-[10px] font-black text-gray-400 text-center">{L.talkColAuthor}</p>
+          <p className="text-[10px] font-black text-gray-400 text-right">{L.talkColDate}</p>
+        </div>
+
+        {talkPosts.length === 0 ? (
+          <div className="text-center py-14">
+            <p className="text-4xl mb-3">💬</p>
+            <p className="text-sm text-gray-400 word-keep">{L.talkEmpty}</p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {talkPosts.map((p, idx) => {
+              const num       = talkPosts.length - idx;
+              const isBlinded = reported.includes(p.id);
+              const isOpen    = selected === p.id;
+              const isUnlocked = viewUnlocked.includes(p.id);
+              const isPrivate = p.isPublic !== true;
+              const showBody  = !isPrivate || isUnlocked;
+
+              return (
+                <li key={p.id}>
+                  {/* ─ 한 줄 행 ─ */}
+                  <div
+                    onClick={() => !isBlinded && setSelected(isOpen ? null : p.id)}
+                    className={`grid gap-2 px-4 py-3 cursor-pointer transition
+                      ${isOpen ? 'bg-green-50' : 'hover:bg-gray-50'}
+                      ${isBlinded ? 'opacity-40 cursor-default' : ''}`}
+                    style={{gridTemplateColumns:'2rem 1fr 4.5rem 3.5rem'}}>
+                    {/* No. */}
+                    <p className={`text-[11px] font-black text-center self-center
+                      ${p.isNew ? 'text-red-500' : 'text-gray-400'}`}>
+                      {p.isNew ? 'N' : num}
+                    </p>
+                    {/* 제목 */}
+                    <div className="min-w-0 self-center">
+                      {isBlinded ? (
+                        <p className="text-[11px] text-gray-300 italic">{L.talkBlinded}</p>
+                      ) : isPrivate && !isUnlocked ? (
+                        <p className="text-[11px] text-gray-400 italic">{L.talkPrivate}</p>
+                      ) : (
+                        <p className={`text-[11px] font-medium truncate word-keep
+                          ${isOpen ? 'text-green-700 font-black' : 'text-gray-800'}`}>
+                          {p.title}
+                        </p>
+                      )}
+                    </div>
+                    {/* 작성자 */}
+                    <p className="text-[10px] text-gray-400 text-center self-center truncate">
+                      {safeAuthor(p).replace(/ #\d+$/, '')}
+                    </p>
+                    {/* 날짜 */}
+                    <p className="text-[10px] text-gray-400 text-right self-center whitespace-nowrap">
+                      {p.date.slice(5)}
+                    </p>
+                  </div>
+
+                  {/* ─ 아코디언 상세 ─ */}
+                  {isOpen && (
+                    <div className="bg-green-50 border-t border-green-100 px-4 py-4 fade-in">
+                      {/* 비공개 잠금 상태 */}
+                      {isPrivate && !isUnlocked ? (
+                        <div className="flex flex-col items-center gap-3 py-4">
+                          <span className="text-3xl">🔒</span>
+                          <p className="text-xs text-gray-500 text-center word-keep">
+                            {lang==='vi' ? 'Bài viết riêng tư. Nhập mật khẩu để xem.' : '비공개 글입니다. 비밀번호를 입력해주세요.'}
+                          </p>
+                          {p.pw && (
+                            <button onClick={()=>setPwModal({action:'view', post:p})}
+                              className="text-xs font-black text-blue-600 bg-blue-50 border border-blue-200 px-4 py-2 rounded-xl tap">
+                              🔑 {lang==='vi' ? 'Nhập mật khẩu' : '비밀번호 입력'}
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          {/* 작성자 정보 */}
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className={`w-7 h-7 rounded-full ${safeAvatarColor(p)} flex items-center justify-center text-white text-xs font-black flex-shrink-0`}>
+                              {safeAvatarChar(p)}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs font-bold text-gray-700">{safeAuthor(p)}</p>
+                              <p className="text-[10px] text-gray-400">{p.date}</p>
+                            </div>
+                            {isPrivate && isUnlocked && (
+                              <span className="text-[9px] font-black text-white bg-gray-400 px-1.5 py-0.5 rounded-full">🔒 비공개</span>
+                            )}
+                            {isUnlocked && (
+                              <button onClick={() => setViewUnlocked(v => v.filter(id => id !== p.id))}
+                                className="text-[9px] text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded-full tap">
+                                🔒
+                              </button>
+                            )}
+                          </div>
+                          {/* 본문 */}
+                          <p className="text-xs text-gray-700 leading-relaxed word-keep mb-3">{p.body}</p>
+                          {/* 리액션 + 수정/삭제/신고 */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <TalkReaction post={p} lang={lang} />
+                            <div className="flex gap-1.5 ml-auto">
+                              {p.pw && (
+                                <>
+                                  <button onClick={()=>setPwModal({action:'edit', post:p})}
+                                    className="text-[10px] text-blue-500 border border-blue-200 px-2 py-1 rounded-lg hover:bg-blue-50 tap">
+                                    {L.editBtn}
+                                  </button>
+                                  <button onClick={()=>setPwModal({action:'delete', post:p})}
+                                    className="text-[10px] text-red-500 border border-red-200 px-2 py-1 rounded-lg hover:bg-red-50 tap">
+                                    {L.deleteBtn}
+                                  </button>
+                                </>
+                              )}
+                              <button onClick={()=>doReport(p.id)}
+                                className={`text-[10px] px-2 py-1 rounded-lg border tap
+                                  ${reported.includes(p.id)
+                                    ? 'text-gray-300 border-gray-100 cursor-default'
+                                    : 'text-orange-500 border-orange-200 hover:bg-orange-50'}`}>
+                                🚩 {reported.includes(p.id) ? L.talkReported : L.talkReport}
+                              </button>
+                            </div>
+                          </div>
+                          {/* 댓글 섹션 */}
+                          <div className="mt-3 -mx-4 -mb-4">
+                            <CommentSection
+                              post={p} lang={lang}
+                              onAddComment={onAddComment}
+                              onDeleteComment={onDeleteComment} />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {/* 비밀번호 모달 */}
+      {pwModal && (
+        <PwModal lang={lang} onConfirm={handlePwConfirm} onCancel={() => setPwModal(null)} />
+      )}
+    </div>
+  );
+}
+
+/* ================================================================
+   비자 전문 통합 게시판 — 합격·SOS·참교육 한눈에 보기
+================================================================ */
+function VisaBoardSection({ posts, nav, lang, onDeletePost, onUpdatePost, onAddComment, onDeleteComment }) {
+  const VISA_REPORTS = 'vb_visa_reports';
+  const [filter, setFilter]         = useState('all');
+  const [selected, setSelected]     = useState(null);
+  const [reported, setReported]     = useState(() => {
+    try { return JSON.parse(localStorage.getItem(VISA_REPORTS) || '[]'); }
+    catch { return []; }
+  });
+  const [pwModal, setPwModal]           = useState(null);
+  const [viewUnlocked, setViewUnlocked] = useState([]);
+  const L = LANG[lang];
+
+  const CAT_BADGE = {
+    hall:   { bg:'bg-amber-50',  text:'text-amber-700',  emoji:'🏆', ko:'합격',  vi:'Đậu' },
+    sos:    { bg:'bg-red-50',    text:'text-red-600',    emoji:'🚨', ko:'SOS',   vi:'SOS' },
+    bamboo: { bg:'bg-orange-50', text:'text-orange-600', emoji:'💬', ko:'참교육', vi:'Kinh nghiệm' },
+  };
+
+  const FILTERS = [
+    { v:'all',    label: L.visaFilterAll    },
+    { v:'hall',   label: L.visaFilterHall   },
+    { v:'sos',    label: L.visaFilterSos    },
+    { v:'bamboo', label: L.visaFilterBamboo },
+  ];
+
+  const visaPosts    = posts.filter(p => ['hall','sos','bamboo'].includes(p.cat));
+  const displayPosts = filter === 'all' ? visaPosts : visaPosts.filter(p => p.cat === filter);
+
+  function doReport(id) {
+    if (reported.includes(id)) return;
+    const next = [...reported, id];
+    setReported(next);
+    localStorage.setItem(VISA_REPORTS, JSON.stringify(next));
+    if (selected === id) setSelected(null);
+  }
+
+  function handlePwConfirm(pw, onFail) {
+    if (!pwModal) return;
+    const { action, post } = pwModal;
+    if (!post.pw || pw !== post.pw) { onFail(); return; }
+    setPwModal(null);
+    if (action === 'delete') {
+      if (selected === post.id) setSelected(null);
+      onDeletePost && onDeletePost(post.id);
+    } else if (action === 'edit') {
+      nav({ page:'write', param:post.cat, editPost:post });
+    } else if (action === 'view') {
+      setViewUnlocked(prev => [...prev, post.id]);
+    }
+  }
+
+  return (
+    <div className="mt-3 fade-in">
+      {/* 헤더 */}
+      <div className="bg-blue-700 px-4 py-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">📋</span>
+          <div>
+            <h2 className="text-sm font-black text-white word-keep">{L.visaBoardTitle}</h2>
+            <p className="text-[10px] text-white/70">{L.visaBoardSub}</p>
+          </div>
+        </div>
+        <button onClick={() => nav({ page:'write', param:'hall' })}
+          className="text-[11px] font-bold text-white bg-black/10 hover:bg-black/20 px-3 py-1.5 rounded-full transition tap">
+          {L.visaBoardWrite}
+        </button>
+      </div>
+
+      {/* 카테고리 필터 탭 */}
+      <div className="bg-white border-b border-gray-100 px-4 py-2 flex gap-1.5">
+        {FILTERS.map(f => (
+          <button key={f.v} onClick={() => { setFilter(f.v); setSelected(null); }}
+            className={`text-xs font-bold px-3 py-1.5 rounded-full tap transition
+              ${filter===f.v ? 'bg-blue-700 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 테이블 헤더 */}
+      <div className="bg-white shadow-sm overflow-hidden">
+        <div className="grid gap-2 px-4 py-2 bg-gray-50 border-b border-gray-100"
+          style={{gridTemplateColumns:'3rem 1fr 4.5rem 3.5rem'}}>
+          <p className="text-[10px] font-black text-gray-400 text-center">
+            {lang==='vi' ? 'Loại' : '분류'}
+          </p>
+          <p className="text-[10px] font-black text-gray-400">
+            {lang==='vi' ? 'Tiêu đề' : '제목'}
+          </p>
+          <p className="text-[10px] font-black text-gray-400 text-center">
+            {lang==='vi' ? 'Tác giả' : '작성자'}
+          </p>
+          <p className="text-[10px] font-black text-gray-400 text-right">
+            {lang==='vi' ? 'Ngày' : '날짜'}
+          </p>
+        </div>
+
+        {displayPosts.length === 0 ? (
+          <div className="text-center py-14">
+            <p className="text-4xl mb-3">📭</p>
+            <p className="text-sm text-gray-400 word-keep">{L.visaBoardEmpty}</p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {displayPosts.map((p) => {
+              const isBlinded  = reported.includes(p.id);
+              const isOpen     = selected === p.id;
+              const isUnlocked = viewUnlocked.includes(p.id);
+              const isPrivate  = p.isPublic !== true;
+              const badge      = CAT_BADGE[p.cat];
+              return (
+                <li key={p.id}>
+                  {/* ─ 한 줄 행 ─ */}
+                  <div
+                    onClick={() => !isBlinded && setSelected(isOpen ? null : p.id)}
+                    className={`grid gap-2 px-4 py-3 cursor-pointer transition
+                      ${isOpen ? 'bg-blue-50' : 'hover:bg-gray-50'}
+                      ${isBlinded ? 'opacity-40 cursor-default' : ''}`}
+                    style={{gridTemplateColumns:'3rem 1fr 4.5rem 3.5rem'}}>
+                    {/* 분류 배지 */}
+                    <div className="flex justify-center items-center">
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
+                        {badge.emoji}
+                      </span>
+                    </div>
+                    {/* 제목 */}
+                    <div className="min-w-0 self-center">
+                      {isBlinded ? (
+                        <p className="text-[11px] text-gray-300 italic">{L.talkBlinded}</p>
+                      ) : isPrivate && !isUnlocked ? (
+                        <p className="text-[11px] text-gray-400 italic">🔒 {lang==='vi' ? 'Bài riêng tư' : '비공개 글'}</p>
+                      ) : (
+                        <p className={`text-[11px] font-medium truncate word-keep
+                          ${isOpen ? 'text-blue-700 font-black' : 'text-gray-800'}`}>
+                          {p.isNew && <span className="text-[9px] font-black text-red-500 mr-1">N</span>}
+                          {p.title}
+                        </p>
+                      )}
+                    </div>
+                    {/* 작성자 */}
+                    <p className="text-[10px] text-gray-400 text-center self-center truncate">
+                      {safeAuthor(p).replace(/ #\d+$/, '')}
+                    </p>
+                    {/* 날짜 */}
+                    <p className="text-[10px] text-gray-400 text-right self-center whitespace-nowrap">
+                      {p.date.slice(5)}
+                    </p>
+                  </div>
+
+                  {/* ─ 아코디언 상세 ─ */}
+                  {isOpen && (
+                    <div className={`border-t border-gray-100 px-4 py-4 fade-in ${badge.bg}`}>
+                      {isPrivate && !isUnlocked ? (
+                        <div className="flex flex-col items-center gap-3 py-4">
+                          <span className="text-3xl">🔒</span>
+                          <p className="text-xs text-gray-500 text-center word-keep">
+                            {lang==='vi' ? 'Bài viết riêng tư. Nhập mật khẩu để xem.' : '비공개 글입니다. 비밀번호를 입력해주세요.'}
+                          </p>
+                          {p.pw && (
+                            <button onClick={() => setPwModal({action:'view', post:p})}
+                              className="text-xs font-black text-blue-600 bg-white border border-blue-200 px-4 py-2 rounded-xl tap">
+                              🔑 {lang==='vi' ? 'Nhập mật khẩu' : '비밀번호 입력'}
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          {/* 작성자 정보 */}
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className={`w-7 h-7 rounded-full ${safeAvatarColor(p)} flex items-center justify-center text-white text-xs font-black flex-shrink-0`}>
+                              {safeAvatarChar(p)}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs font-bold text-gray-700">{safeAuthor(p)}</p>
+                              <p className="text-[10px] text-gray-400">{p.date}</p>
+                            </div>
+                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full bg-white/70 ${badge.text}`}>
+                              {badge.emoji} {lang==='vi' ? badge.vi : badge.ko}
+                            </span>
+                          </div>
+                          {/* 본문 */}
+                          <p className="text-xs text-gray-700 leading-relaxed word-keep mb-3">{p.body}</p>
+                          {/* 리액션 + 수정/삭제/신고 */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <TalkReaction post={p} lang={lang} />
+                            <div className="flex gap-1.5 ml-auto">
+                              {p.pw && (
+                                <>
+                                  <button onClick={() => setPwModal({action:'edit', post:p})}
+                                    className="text-[10px] text-blue-500 border border-blue-200 bg-white/70 px-2 py-1 rounded-lg hover:bg-white tap">
+                                    {L.editBtn}
+                                  </button>
+                                  <button onClick={() => setPwModal({action:'delete', post:p})}
+                                    className="text-[10px] text-red-500 border border-red-200 bg-white/70 px-2 py-1 rounded-lg hover:bg-white tap">
+                                    {L.deleteBtn}
+                                  </button>
+                                </>
+                              )}
+                              <button onClick={() => doReport(p.id)}
+                                className={`text-[10px] px-2 py-1 rounded-lg border tap
+                                  ${reported.includes(p.id)
+                                    ? 'text-gray-300 border-gray-100 cursor-default'
+                                    : 'text-orange-500 border-orange-200 bg-white/70 hover:bg-white'}`}>
+                                🚩 {reported.includes(p.id) ? L.talkReported : L.talkReport}
+                              </button>
+                            </div>
+                          </div>
+                          {/* 댓글 섹션 */}
+                          <div className="mt-3 -mx-4 -mb-4">
+                            <CommentSection
+                              post={p} lang={lang}
+                              onAddComment={onAddComment}
+                              onDeleteComment={onDeleteComment} />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {pwModal && (
+        <PwModal lang={lang} onConfirm={handlePwConfirm} onCancel={() => setPwModal(null)} />
+      )}
+    </div>
+  );
+}
+
+/* ================================================================
+   페이지: 메인(Home)
+================================================================ */
+const GRID_BTNS = [
+  { e:'📘', ko:'D-9 연장 가이드',    vi:'Hướng dẫn gia hạn D-9',      bg:'bg-blue-700',   act:()=>({page:'guide',   param:'d9'}) },
+  { e:'📙', ko:'E-7-4 변경 조건',    vi:'Điều kiện chuyển E-7-4',      bg:'bg-orange-600', act:()=>({page:'guide',   param:'e74'}) },
+  { e:'💰', ko:'매출/실적 증빙 팁',  vi:'Tip chứng minh doanh thu',    bg:'bg-green-600',  act:()=>({page:'checklist',param:'sales'}) },
+  { e:'📊', ko:'E-7-4 점수 체크',   vi:'Bảng điểm E-7-4',             bg:'bg-amber-500',  act:()=>({page:'checklist',param:'score'}) },
+  { e:'📋', ko:'필수 서류 다운로드', vi:'Tải tài liệu cần thiết',      bg:'bg-red-600',    act:()=>({page:'docs',    param:null}) },
+  { e:'🗂️', ko:'출입국 예약 링크',  vi:'Đặt lịch Cục XNC',            bg:'bg-violet-600', act:null, href:'https://www.hikorea.go.kr' },
+];
+
+const BOARD_META = {
+  hall:   { emoji:'🏆', ko:'합격 명예의 전당', vi:'Bảng Vàng E-7-4',         hCls:'bg-amber-400',  tCls:'text-amber-900' },
+  sos:    { emoji:'🚨', ko:'비자 119 SOS',     vi:'Cứu Trợ Khẩn Cấp 119',   hCls:'bg-red-500',    tCls:'text-white' },
+  bamboo: { emoji:'💬', ko:'출입국 참교육방',  vi:'Kinh nghiệm Thực tế',     hCls:'bg-orange-500', tCls:'text-white' },
+};
+
+/* ── 다국어 문자열 ─────────────────────────────────────────────── */
+const LANG = {
+  vi: {
+    tagline:'Cộng đồng D-9 → E-7-4 🇻🇳',
+    quickMenu:'Menu Nhanh', quickMenuSub:'Nhấn để di chuyển',
+    newsTitle:'Tin tức Visa & Thông báo Xuất nhập cảnh',
+    newsRefresh:'Làm mới', newsLoading:'Đang tải…',
+    newsLiveFail:'Kết nối thất bại ({err}) — Hiển thị dữ liệu lưu.',
+    translateBtn:'Xem bản dịch 🌐',
+    viewAll:'Xem tất cả', writeFab:'✏️ Viết bài', writeBtn:'✏️ Viết bài',
+    firstPost:'✏️ Viết bài đầu tiên',
+    noPost:'Chưa có bài viết.\nHãy chia sẻ trải nghiệm của bạn!',
+    privateLabel:'🔒 Bài riêng tư',
+    privateMsg:'Bài viết riêng tư.',
+    privateSub:'Chỉ quản trị viên mới xem được.',
+    reactions:'người đã phản ứng', comments:'bình luận',
+    editBtn:'Sửa', deleteBtn:'Xóa',
+    pwModalTitle:'Nhập mật khẩu 4 chữ số',
+    pwModalSub:'Nhập mật khẩu bạn đặt khi viết bài',
+    pwPlaceholder:'••••', pwConfirm:'Xác nhận', pwCancel:'Hủy',
+    pwWrong:'❌ Mật khẩu không đúng',
+    writePageTitle:'✍️ Chia sẻ trải nghiệm',
+    selectBoard:'Chọn bảng tin',
+    titlePlaceholder:'Nhập tiêu đề (tối đa 60 ký tự)',
+    bodyPlaceholder:'Nhập nội dung. (Tiếng Việt hoặc 한국어 đều được)',
+    visLabel:'Cài đặt hiển thị',
+    visPublic:'🌍 Công khai', visPublicDesc:'Mọi người đều thấy',
+    visPrivate:'🔒 Riêng tư', visPrivateDesc:'Chỉ quản trị viên',
+    pwFieldLabel:'🔑 Mật khẩu bài viết (4 chữ số)',
+    pwFieldPlaceholder:'Nhập 4 chữ số để sửa/xóa sau này',
+    pwFieldNote:'Ghi nhớ mật khẩu! Cần để sửa hoặc xóa bài.',
+    privacyTitle:'🔒 Lưu ý bảo mật — Bắt buộc đọc!',
+    privacy1:'Không nhập tên thật, số điện thoại, tên công ty',
+    privacy2:'Tuyệt đối không nhập số đăng ký ngoại kiều, số hộ chiếu',
+    privacy3:'Biệt danh tác giả được ẩn danh tự động',
+    privacy4:'Thông tin thật tuyệt đối không hiển thị trên màn hình',
+    anonNote:'Đăng ẩn danh hoàn toàn. Biệt danh được tạo tự động với bảo mật 2 lớp.',
+    cancelBtn:'Hủy', submitBtn:'Đăng bài',
+    emptyAlert:'Vui lòng nhập tiêu đề và nội dung ⚠️',
+    pwEmptyAlert:'Vui lòng nhập mật khẩu 4 chữ số ⚠️',
+    pwLengthAlert:'Mật khẩu phải đúng 4 chữ số ⚠️',
+    backToMain:'← Về trang chính',
+    noNewsErr:'Kết nối thất bại',
+    visaBoardTitle:'Bảng Tin Visa Chuyên',
+    visaBoardSub:'Diễn đàn chia sẻ kinh nghiệm E-7-4',
+    visaBoardWrite:'✏️ Viết bài',
+    visaBoardEmpty:'Chưa có bài viết.',
+    visaFilterAll:'Tất cả',
+    visaFilterHall:'🏆 Đậu',
+    visaFilterSos:'🚨 SOS',
+    visaFilterBamboo:'💬 Kinh nghiệm',
+    talkBtnLabel:'Góc Tán Gẫu', talkBtnSub:'Tán gẫu tự do · Không liên quan visa',
+    talkClose:'Đóng', talkWriteBtn:'✏️ Viết',
+    talkColTitle:'Tiêu đề', talkColAuthor:'Tác giả', talkColDate:'Ngày',
+    talkEmpty:'Chưa có bài viết. Hãy là người đầu tiên! 💬',
+    talkReport:'Báo cáo', talkReported:'Đã báo cáo',
+    talkBlinded:'[Bài viết đã bị báo cáo]',
+    talkPrivate:'[Bài riêng tư — Nhập mật khẩu để xem]',
+    cmt:'Bình luận', cmtCount:'{n} bình luận',
+    cmtPlaceholder:'Viết bình luận... (Tiếng Việt hoặc 한국어)',
+    cmtPwPlaceholder:'Mật khẩu 4 số (để xóa sau)',
+    cmtPwNote:'Không bắt buộc — nhập nếu muốn xóa sau',
+    cmtSubmit:'Gửi', cmtEmpty:'Chưa có bình luận nào.',
+    cmtDelete:'Xóa', cmtCollapse:'Thu gọn',
+  },
+  ko: {
+    tagline:'D-9 → E-7-4 커뮤니티 🇻🇳',
+    quickMenu:'Quick Menu', quickMenuSub:'탭 하면 바로 이동',
+    newsTitle:'최신 비자 정책 & 출입국 고시',
+    newsRefresh:'새로고침', newsLoading:'로딩 중…',
+    newsLiveFail:'실시간 연동 실패 ({err}) — 최근 저장 데이터 표시.',
+    translateBtn:'번역 보기 🌐',
+    viewAll:'전체 보기', writeFab:'✏️ 글쓰기', writeBtn:'✏️ 글쓰기',
+    firstPost:'✏️ 첫 글 작성하기',
+    noPost:'아직 게시글이 없어요.\n첫 번째 경험을 공유해 주세요!',
+    privateLabel:'🔒 비공개 글',
+    privateMsg:'비공개 게시글입니다.',
+    privateSub:'작성자 정보와 내용은 운영자만 확인할 수 있습니다.',
+    reactions:'명이 반응했어요', comments:'댓글',
+    editBtn:'수정', deleteBtn:'삭제',
+    pwModalTitle:'비밀번호 4자리 입력',
+    pwModalSub:'글 작성 시 입력한 비밀번호를 입력하세요',
+    pwPlaceholder:'••••', pwConfirm:'확인', pwCancel:'취소',
+    pwWrong:'❌ 비밀번호가 틀렸습니다',
+    writePageTitle:'✍️ 경험 공유하기',
+    selectBoard:'게시판 선택',
+    titlePlaceholder:'제목을 입력하세요 (최대 60자)',
+    bodyPlaceholder:'내용을 입력하세요. (한국어, Tiếng Việt 모두 가능)',
+    visLabel:'공개 설정',
+    visPublic:'🌍 공개', visPublicDesc:'모두에게 공개',
+    visPrivate:'🔒 비공개', visPrivateDesc:'운영자만 확인',
+    pwFieldLabel:'🔑 글 비밀번호 (숫자 4자리)',
+    pwFieldPlaceholder:'숫자 4자리 (수정·삭제 시 사용)',
+    pwFieldNote:'비밀번호를 꼭 기억하세요! 나중에 수정·삭제 시 필요합니다.',
+    privacyTitle:'🔒 개인정보 주의사항 — 반드시 확인!',
+    privacy1:'본명, 연락처, 회사명을 직접 입력하지 마세요',
+    privacy2:'외국인등록번호·여권번호 등 민감정보 입력 절대 금지',
+    privacy3:'작성자 닉네임은 자동 익명 처리되어 저장됩니다',
+    privacy4:'화면에는 실제 정보가 절대 표시되지 않습니다',
+    anonNote:'완전 익명으로 게시됩니다. 닉네임은 자동 생성되며, 2중 익명 처리가 적용됩니다.',
+    cancelBtn:'취소', submitBtn:'등록하기',
+    emptyAlert:'제목과 내용을 입력해주세요 ⚠️',
+    pwEmptyAlert:'비밀번호 4자리를 입력해주세요 ⚠️',
+    pwLengthAlert:'비밀번호는 숫자 4자리로 입력해주세요 ⚠️',
+    backToMain:'← 메인으로 돌아가기',
+    noNewsErr:'연결 시간 초과',
+    talkBtnLabel:'🟢 자유 토크방', talkBtnSub:'비자 외 자유 수다 · 일상 토크',
+    talkClose:'닫기', talkWriteBtn:'✏️ 글쓰기',
+    talkColTitle:'제목', talkColAuthor:'작성자', talkColDate:'날짜',
+    talkEmpty:'아직 글이 없어요. 첫 글을 남겨보세요! 💬',
+    talkReport:'신고', talkReported:'신고됨',
+    talkBlinded:'[신고된 글입니다]',
+    talkPrivate:'[비공개 글 — 비밀번호로 열람]',
+    visaBoardTitle:'비자 전문 게시판',
+    visaBoardSub:'합격·SOS·참교육 한눈에 보기',
+    visaBoardWrite:'✏️ 글쓰기',
+    visaBoardEmpty:'아직 게시글이 없어요.',
+    visaFilterAll:'전체',
+    visaFilterHall:'🏆 합격',
+    visaFilterSos:'🚨 SOS',
+    visaFilterBamboo:'💬 참교육',
+    cmt:'댓글', cmtCount:'{n}개',
+    cmtPlaceholder:'댓글을 입력하세요... (한국어, Tiếng Việt 모두)',
+    cmtPwPlaceholder:'비밀번호 4자리 (삭제용, 선택)',
+    cmtPwNote:'선택사항 — 나중에 삭제하려면 입력하세요',
+    cmtSubmit:'등록', cmtEmpty:'아직 댓글이 없어요.',
+    cmtDelete:'삭제', cmtCollapse:'접기',
+  },
+};
+
+function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onAddComment, onDeleteComment, toggleLang }) {
+  const { news, loading, isLive, errMsg, refetch } = useNews();
+  const [talkOpen, setTalkOpen] = useState(false);
+  const L = LANG[lang];
+
+  return (
+    <div style={{ background:'#F0F2F5' }}>
+      {/* 헤더 */}
+      <header className="bg-white sticky top-0 z-50 shadow-sm">
+        <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-blue-700 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0">V</div>
+            <div>
+              <p className="text-sm font-black text-blue-800 leading-tight">Visa Buddy</p>
+              <p className="text-[9px] text-gray-400 leading-none">{L.tagline}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-0.5">
+            {/* 다국어 토글 */}
+            <button onClick={toggleLang}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full border border-gray-200 hover:bg-gray-50 tap transition mr-1">
+              <span className="text-base leading-none">{lang === 'vi' ? '🇻🇳' : '🇰🇷'}</span>
+              <span className="text-[10px] font-black text-gray-600">{lang === 'vi' ? 'VN' : 'KR'}</span>
+              <span className="text-[9px] text-gray-300">→</span>
+              <span className="text-[10px] font-bold text-gray-400">{lang === 'vi' ? 'KR' : 'VN'}</span>
+            </button>
+            <button className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center relative tap">
+              <span className="text-xl">🔔</span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+            </button>
+            <button className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center tap">
+              <span className="text-xl">🔍</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-lg mx-auto pb-20">
+
+        {/* ── 퀵 메뉴 그리드 ── */}
+        <section className="bg-white px-4 pt-4 pb-5 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-black text-gray-400 tracking-widest uppercase">{L.quickMenu}</p>
+            <p className="text-[10px] text-gray-300">{L.quickMenuSub}</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2.5">
+            {GRID_BTNS.map((b, i) => {
+              const commonCls = `${b.bg} text-white rounded-2xl px-3 py-4 text-left shadow-md tap transition-transform`;
+              const inner = (
+                <>
+                  <span className="text-2xl block mb-2">{b.e}</span>
+                  <p className="text-[11px] font-black leading-tight word-keep">{b[lang]}</p>
+                  <p className="text-[9px] opacity-70 mt-1 leading-tight">{lang === 'vi' ? b.ko : b.vi}</p>
+                </>
+              );
+              if (b.href) {
+                return (
+                  <a key={i} href={b.href} target="_blank" rel="noopener noreferrer" className={commonCls}>
+                    {inner}
+                  </a>
+                );
+              }
+              return (
+                <button key={i} onClick={() => nav(b.act())} className={commonCls}>
+                  {inner}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ── 🟢 자유 토크방 와이드 버튼 ── */}
+        <section className="mt-3 px-3">
+          <button
+            onClick={() => setTalkOpen(o => !o)}
+            className={`w-full rounded-2xl shadow-md tap transition-all overflow-hidden
+              ${talkOpen
+                ? 'bg-gradient-to-r from-green-600 to-emerald-500 ring-4 ring-green-300'
+                : 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600'}`}>
+            <div className="px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+                  💬
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-black text-white leading-tight">
+                    {lang === 'vi' ? 'Góc Tán Gẫu' : '🟢 자유 토크방'}
+                  </p>
+                  <p className="text-[10px] text-white/80 mt-0.5">
+                    {L.talkBtnSub}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {posts.filter(p=>p.cat==='talk').some(p=>p.isNew) && (
+                  <span className="text-[9px] font-black text-green-700 bg-white px-1.5 py-0.5 rounded-full">NEW</span>
+                )}
+                <span className={`text-white text-xl font-black transition-transform duration-300 ${talkOpen ? 'rotate-180' : ''}`}>
+                  ⌄
+                </span>
+              </div>
+            </div>
+            {/* 글 수 미리보기 바 */}
+            <div className="bg-black/15 px-5 py-2 flex items-center gap-3">
+              <span className="text-[10px] text-white/90 font-bold">
+                {lang==='vi' ? '💬 Bài viết' : '💬 게시글'} {posts.filter(p=>p.cat==='talk').length}
+              </span>
+              <span className="text-white/30 text-xs">|</span>
+              <span className="text-[10px] text-white/70">
+                {talkOpen
+                  ? (lang==='vi' ? '▲ Thu gọn' : '▲ 접기')
+                  : (lang==='vi' ? '▼ Xem tất cả bài viết' : '▼ 클릭하면 전체 목록 열림')}
+              </span>
+            </div>
+          </button>
+        </section>
+
+        {/* ── 뉴스 & 고시 ── */}
+        <section className="bg-white mt-3 px-4 py-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-base">📣</span>
+              <h2 className="text-sm font-black text-gray-800">{L.newsTitle}</h2>
+              {isLive && (
+                <span className="text-[9px] font-black text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">● LIVE</span>
+              )}
+            </div>
+            <button onClick={refetch} disabled={loading}
+              className="text-[11px] font-bold text-blue-600 hover:underline disabled:opacity-40 tap">
+              {loading ? L.newsLoading : L.newsRefresh}
+            </button>
+          </div>
+
+          {/* 오류 배너 */}
+          {errMsg && !isLive && (
+            <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3 flex items-center gap-1.5">
+              <span>⚠️</span> {L.newsLiveFail.replace('{err}', errMsg)}
+            </div>
+          )}
+
+          {/* 스켈레톤 or 뉴스 목록 */}
+          {loading ? (
+            <div className="divide-y divide-gray-50">
+              {[1,2,3].map(i => <SkeletonRow key={i} />)}
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-50">
+              {news.map(n => (
+                <li key={n.id} className="py-2.5">
+                  <a href={n.link} target="_blank" rel="noopener noreferrer"
+                    className="flex items-start gap-2.5 hover:bg-gray-50 rounded-lg px-1 -mx-1 transition">
+                    <div className="flex flex-col items-center gap-1 flex-shrink-0 pt-0.5">
+                      <span className="text-[9px] font-black text-white bg-blue-700 rounded px-1.5 py-0.5">{n.badge}</span>
+                      {n.hot && <span className="text-[8px] font-black text-red-500">🔥HOT</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-700 font-medium word-keep leading-snug">{n.title}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{n.date}</p>
+                    </div>
+                    <span className="text-gray-300 flex-shrink-0 text-sm pt-1">→</span>
+                  </a>
+                  {/* 한국어 뉴스에만 구글 번역 링크 */}
+                  {n.lang === 'KO' && (
+                    <a href={`https://translate.google.com/translate?sl=ko&tl=vi&u=${encodeURIComponent(n.link)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 mt-1 ml-1 text-[10px] font-bold text-blue-500 hover:text-blue-700 hover:underline tap">
+                      {L.translateBtn}
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* ── 자유 토크방 리스트 (talkOpen=true) OR 3대 게시판 피드 (talkOpen=false) ── */}
+        {talkOpen ? (
+          /* 자유 토크방 — 네이버 카페 스타일 리스트 */
+          <TalkListView
+            posts={posts}
+            nav={nav}
+            lang={lang}
+            onDeletePost={onDeletePost}
+            onUpdatePost={onUpdatePost}
+            onAddComment={onAddComment}
+            onDeleteComment={onDeleteComment}
+            onClose={() => setTalkOpen(false)}
+          />
+        ) : (
+          /* 비자 전문 통합 게시판 */
+          <VisaBoardSection
+            posts={posts}
+            nav={nav}
+            lang={lang}
+            onDeletePost={onDeletePost}
+            onUpdatePost={onUpdatePost}
+            onAddComment={onAddComment}
+            onDeleteComment={onDeleteComment} />
+        )}
+      </main>
+
+      {/* FAB — 자유 토크방 열렸을 땐 초록, 닫혔을 땐 파란색 */}
+      <button
+        onClick={() => talkOpen
+          ? nav({ page:'write', param:'talk' })
+          : nav({ page:'write', param:'hall' })}
+        className={`fixed bottom-6 right-4 text-white font-black text-sm px-5 py-3.5 rounded-full shadow-xl z-40 flex items-center gap-2 tap transition
+          ${talkOpen ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-700 hover:bg-blue-800'}`}>
+        {talkOpen ? (lang==='vi' ? '✏️ Viết' : '✏️ 글쓰기') : L.writeFab}
+      </button>
+    </div>
+  );
+}
+
+/* ================================================================
+   페이지: 비자 가이드 (D-9 / E-7-4)
+================================================================ */
+const GUIDE_DATA = {
+  d9: {
+    title: '📘 D-9 비자 연장 가이드',
+    sub: 'Hướng dẫn gia hạn D-9',
+    color: 'bg-blue-700',
+    sections: [
+      { icon:'✅', title:'연장 가능 기간',
+        items:['최초 발급: 6개월','1차 연장: 1년 단위','총 체류 최대 2년 (이후 취업비자 변경 필요)'] },
+      { icon:'📋', title:'연장 신청 자격',
+        items:['현재 D-9 비자 소지자','취업 활동 실적 증명 (면접 확인서, 기업 방문 확인서 등)','생계 유지 능력 (잔액증명서 등)','학위증 또는 경력증명서'] },
+      { icon:'📌', title:'신청 절차 (5단계)',
+        steps:[
+          { n:'1', t:'하이코리아 방문 예약', d:'만료 4개월 전부터 신청 가능' },
+          { n:'2', t:'서류 준비',           d:'통합신청서, 여권, 외국인등록증, 취업 활동 실적' },
+          { n:'3', t:'관할 출입국 방문 접수', d:'예약 시간 10분 전 도착 권장' },
+          { n:'4', t:'심사',               d:'약 1~2주 소요' },
+          { n:'5', t:'결과 수령',           d:'하이코리아 "나의 민원"에서 조회' },
+        ] },
+      { icon:'⚠️', title:'주의사항', warn:true,
+        items:['만료 4개월 전부터 신청 가능 (그 이전엔 접수 불가)','D-9으로 최대 2년 이내 취업비자(E-7-4 등)로 변경 필수','기간 초과 → 불법체류 → 5년 재입국 금지','접수증 발급 받으면 심사 중에도 합법 체류 가능'] },
+    ]
+  },
+  e74: {
+    title: '📙 E-7-4 비자 변경 조건',
+    sub: 'Điều kiện chuyển E-7-4',
+    color: 'bg-orange-600',
+    sections: [
+      { icon:'✅', title:'기본 자격 요건',
+        items:['동일 사업장 계속 근무 4년 이상','점수제 합계 200점 이상 (최대 300점)','현재 합법적 체류 중 (D-9, E-9 등)','결격 사유 없음 (형사처벌·불법취업 이력 등)'] },
+      { icon:'📊', title:'점수제 항목 (최대 300점)',
+        table:[
+          ['항목','최대 점수','비고'],
+          ['연령','18점','25~34세 만점'],
+          ['한국어 능력','30점','토픽 5~6급 or 사통 5단계'],
+          ['학력','22점','국내 석사 이상'],
+          ['소득 수준','40점','최저임금 2.5배 이상'],
+          ['자격증 가산','10점','국가기술자격증'],
+          ['추천서 가산','30점','고용주 추천서'],
+          ['장기근속 가산','+20점','6년 이상 (+10점은 4년 기본)'],
+        ] },
+      { icon:'📌', title:'신청 절차',
+        steps:[
+          { n:'1', t:'점수 계산 확인', d:'본 앱 "E-7-4 점수 체크" 활용' },
+          { n:'2', t:'서류 준비',      d:'통합신청서, 임금대장, 재직확인서, 추천서 등' },
+          { n:'3', t:'하이코리아 예약', d:'만료 2개월 전 신청 권장' },
+          { n:'4', t:'방문 접수',      d:'수수료 60,000원 (현금/카드)' },
+          { n:'5', t:'결과 수령',      d:'처리 기간 2~4주' },
+        ] },
+      { icon:'💡', title:'합격 핵심 팁', tip:true,
+        items:['임금대장은 반드시 실수령액(세후) 기준 — 세전 기준은 거절 사유','고용주 추천서 30점이 합격/불합격 가른다','토픽 3급(18점) 이상 강력 권장 — 2급은 10점','신청 전 관할 출입국에 전화로 추가 서류 확인'] },
+    ]
+  }
+};
+
+function GuidePage({ type, onBack }) {
+  const d = GUIDE_DATA[type];
+  if (!d) return null;
+  return (
+    <div style={{ background:'#F0F2F5' }} className="min-h-screen">
+      <BackHeader title={d.title} onBack={onBack} />
+      <div className="max-w-lg mx-auto px-4 py-4 pb-12">
+        <p className="text-xs text-gray-400 mb-4">{d.sub}</p>
+        <div className="flex flex-col gap-4">
+          {d.sections.map((s, i) => (
+            <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden fade-in">
+              <div className={`px-4 py-3 border-b border-gray-50 ${s.warn?'bg-red-50':s.tip?'bg-amber-50':''}`}>
+                <p className={`text-sm font-black flex items-center gap-2 ${s.warn?'text-red-700':s.tip?'text-amber-700':'text-gray-800'}`}>
+                  <span>{s.icon}</span>{s.title}
+                </p>
+              </div>
+              <div className="px-4 py-3.5">
+                {s.items && (
+                  <ul className="flex flex-col gap-2">
+                    {s.items.map((item, j) => (
+                      <li key={j} className={`flex items-start gap-2 text-xs word-keep ${s.warn?'text-red-600':s.tip?'text-amber-700':'text-gray-600'}`}>
+                        <span className="flex-shrink-0">{s.warn?'⚠️':s.tip?'→':'•'}</span>{item}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {s.steps && (
+                  <ol className="flex flex-col gap-3">
+                    {s.steps.map((st, j) => (
+                      <li key={j} className="flex items-start gap-3">
+                        <span className={`w-6 h-6 rounded-full ${d.color} text-white text-xs font-black flex items-center justify-center flex-shrink-0`}>{st.n}</span>
+                        <div className="pt-0.5">
+                          <p className="text-xs font-black text-gray-800">{st.t}</p>
+                          <p className="text-[11px] text-gray-500 mt-0.5 word-keep">{st.d}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+                {s.table && (
+                  <div className="overflow-x-auto -mx-1">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          {s.table[0].map((h,j) => <th key={j} className="px-2 py-2 text-left font-black text-gray-600 whitespace-nowrap">{h}</th>)}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {s.table.slice(1).map((row, j) => (
+                          <tr key={j} className="border-t border-gray-50">
+                            {row.map((cell, k) => (
+                              <td key={k} className={`px-2 py-2 word-keep ${k===1?'font-black text-blue-700':'text-gray-600'}`}>{cell}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <button onClick={onBack} className={`mt-6 w-full ${d.color} text-white font-black py-4 rounded-2xl text-sm tap transition`}>
+          ← 메인으로 돌아가기
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   페이지: 매출/실적 증빙 체크리스트
+================================================================ */
+const SALES_ITEMS = [
+  { id:'a', label:'임금대장 (최근 1년, 세후 실수령액 기준)', req:true },
+  { id:'b', label:'재직확인서 (고용주 발급, 서명·도장 필수)', req:true },
+  { id:'c', label:'사업자등록증 사본', req:true },
+  { id:'d', label:'부가가치세 과세표준증명원 (홈택스 발급)', req:true },
+  { id:'e', label:'소득세 납부확인서 (원천징수확인서)', req:true },
+  { id:'f', label:'표준재무제표증명 (2년치)', req:true },
+  { id:'g', label:'4대보험 가입자명부', req:false },
+  { id:'h', label:'고용보험 납부확인서', req:false },
+  { id:'i', label:'건강보험 납부확인서', req:false },
+];
+
+function SalesPage({ onBack }) {
+  const [chk, setChk] = useState({});
+  const req  = SALES_ITEMS.filter(x=>x.req).length;
+  const done = SALES_ITEMS.filter(x=>x.req&&chk[x.id]).length;
+  const pct  = Math.round((done/req)*100);
+
+  return (
+    <div style={{ background:'#F0F2F5' }} className="min-h-screen">
+      <BackHeader title="💰 매출/실적 증빙 팁 & 서류" onBack={onBack} />
+      <div className="max-w-lg mx-auto px-4 py-4 pb-12">
+
+        {/* 진행률 */}
+        <div className="bg-white rounded-2xl shadow-sm px-4 py-4 mb-4 fade-in">
+          <div className="flex items-end justify-between mb-2">
+            <p className="text-xs font-bold text-gray-500">필수 서류 준비율</p>
+            <p className="text-2xl font-black text-blue-700">{done}<span className="text-sm text-gray-400">/{req}</span></p>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2.5">
+            <div className={`h-2.5 rounded-full transition-all duration-700 ${pct===100?'bg-green-500':'bg-blue-700'}`} style={{width:`${pct}%`}}></div>
+          </div>
+          {pct===100 && <p className="text-xs text-green-600 font-bold mt-2 fade-in">✅ 필수 서류 준비 완료! 출입국 예약을 진행하세요.</p>}
+        </div>
+
+        {/* 핵심 팁 */}
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4 fade-in">
+          <p className="text-xs font-black text-amber-700 mb-2">💡 임금대장 핵심 팁</p>
+          {['반드시 실수령액(세후) 기준으로 작성 — 세전 기준은 탈락 사유','월별 지급 내역 명확하게 (고용주 서명·도장 필수)','최근 12개월치 전체 제출 권장','두 버전(세전/세후) 모두 준비해두면 안전'].map((t,i)=>(
+            <p key={i} className="text-xs text-amber-700 flex items-start gap-1.5 mt-1"><span className="flex-shrink-0">→</span>{t}</p>
+          ))}
+        </div>
+
+        {/* 체크리스트 */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden fade-in">
+          <div className="px-4 py-3 border-b border-gray-50">
+            <p className="text-sm font-black text-gray-800">서류 체크리스트</p>
+            <p className="text-xs text-gray-400 mt-0.5">체크하면서 준비 상황을 관리하세요</p>
+          </div>
+          <ul className="divide-y divide-gray-50">
+            {SALES_ITEMS.map(doc => (
+              <li key={doc.id}>
+                <label className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50 transition ${chk[doc.id]?'bg-green-50':''}`}>
+                  <input type="checkbox" checked={!!chk[doc.id]}
+                    onChange={e => setChk(p=>({...p,[doc.id]:e.target.checked}))}
+                    className="w-5 h-5 rounded accent-blue-700 flex-shrink-0" />
+                  <span className={`text-xs word-keep flex-1 ${chk[doc.id]?'text-green-700 line-through':'text-gray-700'}`}>{doc.label}</span>
+                  {doc.req && !chk[doc.id] && <span className="text-[9px] font-black text-red-500 flex-shrink-0">필수</span>}
+                  {chk[doc.id] && <span className="text-green-500 flex-shrink-0 text-sm">✓</span>}
+                </label>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   페이지: E-7-4 점수 계산기
+================================================================ */
+function ScorePage({ onBack }) {
+  const [age,setAge]     = useState('0');
+  const [kor,setKor]     = useState('0');
+  const [edu,setEdu]     = useState('0');
+  const [inc,setInc]     = useState('0');
+  const [cert,setCert]   = useState(false);
+  const [rec,setRec]     = useState(false);
+  const [long6,setLong6] = useState(false);
+
+  const BASE  = 10; // 동일 사업장 4년 이상 기본
+  const total = +age + +kor + +edu + +inc + (cert?10:0) + (rec?30:0) + (long6?10:0) + BASE;
+  const pct   = Math.min((total/300)*100, 100);
+  const pass  = total >= 200;
+
+  const SEL = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-700 bg-white';
+
+  return (
+    <div style={{ background:'#F0F2F5' }} className="min-h-screen">
+      <BackHeader title="📊 E-7-4 점수 체크" onBack={onBack} />
+      <div className="max-w-lg mx-auto px-4 py-4 pb-12">
+
+        {/* 결과 카드 */}
+        <div className={`rounded-2xl shadow-sm overflow-hidden mb-4 border-2 fade-in ${pass?'bg-green-50 border-green-200':'bg-white border-gray-100'}`}>
+          <div className="px-4 py-4">
+            <div className="flex items-end justify-between mb-3">
+              <p className="text-xs font-bold text-gray-500">나의 예상 점수</p>
+              <p className={`text-4xl font-black ${pass?'text-green-600':'text-blue-700'}`}>{total}<span className="text-lg">점</span></p>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3 mb-1">
+              <div className={`h-3 rounded-full transition-all duration-700 ${pass?'bg-green-500':'bg-blue-700'}`} style={{width:`${pct}%`}}></div>
+            </div>
+            <div className="flex justify-between text-[10px] text-gray-400 mb-3">
+              <span>0점</span><span className="font-bold text-blue-700">합격선 200점</span><span>300점</span>
+            </div>
+            {pass
+              ? <p className="text-sm font-black text-green-600">🎉 합격 가능! 지금 서류를 준비하세요.</p>
+              : <p className="text-sm font-black text-red-500">❌ {200-total}점 더 필요합니다. 아래 항목을 개선해보세요!</p>}
+          </div>
+        </div>
+
+        {/* 입력 항목 */}
+        <div className="flex flex-col gap-3">
+          {[
+            ['① 연령', age, setAge, [['0','선택하세요'],['16','18~24세 (16점)'],['18','25~29세 (18점)'],['17','30~34세 (17점)'],['14','35~39세 (14점)'],['10','40~44세 (10점)'],['6','45~49세 (6점)'],['2','50세 이상 (2점)']]],
+            ['② 한국어 능력', kor, setKor, [['0','선택하세요'],['0','토픽 1급 (0점)'],['10','토픽 2급 (10점)'],['18','토픽 3급 (18점)'],['24','토픽 4급 (24점)'],['30','토픽 5~6급 (30점)'],['30','사회통합프로그램 5단계 (30점)']]],
+            ['③ 학력', edu, setEdu, [['0','선택하세요 / 해당없음 (0점)'],['10','국내 전문학사 (10점)'],['18','국내 학사 (18점)'],['22','국내 석사 이상 (22점)'],['10','해외 학사 (10점)'],['14','해외 석사 이상 (14점)']]],
+            ['④ 소득 (월 실수령액 기준)', inc, setInc, [['0','선택하세요'],['0','최저임금 1배 미만 (0점)'],['10','1배 이상 1.5배 미만 (10점)'],['20','1.5배 이상 2배 미만 (20점)'],['30','2배 이상 2.5배 미만 (30점)'],['40','2.5배 이상 (40점)']]],
+          ].map(([label, val, setter, opts]) => (
+            <div key={label} className="bg-white rounded-2xl shadow-sm px-4 py-3 fade-in">
+              <label className="block text-xs font-black text-gray-600 mb-2">{label}</label>
+              <select value={val} onChange={e=>setter(e.target.value)} className={SEL}>
+                {opts.map(([v,l],idx)=><option key={idx} value={v}>{l}</option>)}
+              </select>
+            </div>
+          ))}
+
+          {/* 가산점 체크박스 */}
+          <div className="bg-white rounded-2xl shadow-sm px-4 py-3 fade-in">
+            <p className="text-xs font-black text-gray-600 mb-1">⑤ 가산점 (중복 선택 가능)</p>
+            <p className="text-[10px] text-gray-400 mb-3">※ 동일 사업장 4년 이상 기본 10점 자동 포함</p>
+            {[
+              ['국가기술자격증 보유',cert,setCert,10],
+              ['고용주 추천서 첨부',rec,setRec,30],
+              ['동일 사업장 6년 이상 근무 (+10점 추가)',long6,setLong6,10],
+            ].map(([label,val,setter,pts])=>(
+              <label key={label} className="flex items-center gap-3 cursor-pointer py-2.5 border-b border-gray-50 last:border-0">
+                <input type="checkbox" checked={val} onChange={e=>setter(e.target.checked)} className="w-5 h-5 rounded accent-blue-700 flex-shrink-0"/>
+                <span className="flex-1 text-sm text-gray-700 word-keep">{label}</span>
+                <span className="text-sm font-black text-blue-700">+{pts}점</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-[10px] text-center text-gray-400 mt-5 word-keep">
+          ⚠️ 참고용 계산기입니다. 실제 심사 결과와 다를 수 있습니다.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   페이지: 필수 서류 다운로드
+   driveId: 구글 드라이브 파일 ID (실제 파일 업로드 후 교체 필요)
+   다운로드 URL 형식: https://drive.google.com/uc?export=download&id={driveId}
+================================================================ */
+const DOCS = [
+  {
+    icon:'📄', name:'통합신청서 (체류자격 변경·연장)', badge:'법무부 공식',
+    desc:'E-7-4 변경·D-9 연장 공통 양식 (HWP/PDF)',
+    fileName:'통합신청서_E74_변경.hwp',
+    driveId:'1PLACEHOLDER_DRIVE_ID_통합신청서_replace_me',
+    official:'https://www.hikorea.go.kr/pt/InfoDetailR_kor.pt?catSeq=2&cmsSeq=189',
+  },
+  {
+    icon:'📝', name:'고용사유서 양식', badge:'법무부 공식',
+    desc:'고용주 작성 — 채용 목적·업종코드 필수 기재',
+    fileName:'고용사유서_E74.hwp',
+    driveId:'2PLACEHOLDER_DRIVE_ID_고용사유서_replace_me',
+    official:'https://www.hikorea.go.kr/pt/InfoDetailR_kor.pt?catSeq=2&cmsSeq=189',
+  },
+  {
+    icon:'✍️', name:'고용주 추천서 양식', badge:'법무부 공식',
+    desc:'E-7-4 가산점 30점 — 가장 중요한 서류',
+    fileName:'고용주추천서_E74.hwp',
+    driveId:'3PLACEHOLDER_DRIVE_ID_추천서_replace_me',
+    official:'https://www.hikorea.go.kr/pt/InfoDetailR_kor.pt?catSeq=2&cmsSeq=189',
+  },
+  {
+    icon:'💼', name:'재직확인서 (표준양식)', badge:'표준양식',
+    desc:'고용주 서명·법인 도장 필수, 근무 기간 명시',
+    fileName:'재직확인서_표준.hwp',
+    driveId:'4PLACEHOLDER_DRIVE_ID_재직확인서_replace_me',
+    official:'https://www.moj.go.kr',
+  },
+  {
+    icon:'💰', name:'임금대장 양식 (세후 기준)', badge:'표준양식',
+    desc:'월별 실수령액 기재 — 세전 아님! 세후 기준',
+    fileName:'임금대장_세후기준.xlsx',
+    driveId:'5PLACEHOLDER_DRIVE_ID_임금대장_replace_me',
+    official:'https://www.moj.go.kr',
+  },
+  {
+    icon:'🏦', name:'부가가치세 과세표준증명원', badge:'홈택스 발급',
+    desc:'홈택스 로그인 → 민원증명 → 즉시 발급',
+    fileName:null,
+    driveId:null,
+    official:'https://www.hometax.go.kr',
+  },
+  {
+    icon:'📊', name:'소득세 납부확인서', badge:'홈택스 발급',
+    desc:'홈택스 또는 세무서 방문 발급 가능',
+    fileName:null,
+    driveId:null,
+    official:'https://www.hometax.go.kr',
+  },
+  {
+    icon:'📋', name:'사업자등록증 사본', badge:'홈택스 발급',
+    desc:'홈택스 → 사업자등록증 즉시 출력',
+    fileName:null,
+    driveId:null,
+    official:'https://www.hometax.go.kr',
+  },
+];
+
+function DocsPage({ onBack }) {
+  return (
+    <div style={{ background:'#F0F2F5' }} className="min-h-screen">
+      <BackHeader title="📋 필수 서류 다운로드" onBack={onBack} />
+      <div className="max-w-lg mx-auto px-4 py-4 pb-12">
+
+        {/* 안내 배너 */}
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 mb-2 fade-in">
+          <p className="text-xs font-black text-blue-800 mb-1">📌 서류 받는 방법</p>
+          <p className="text-xs text-blue-700 word-keep">
+            ⬇️ <strong>다운로드</strong> 버튼: 구글 드라이브에서 파일 즉시 저장 (운영자가 준비한 양식)<br/>
+            🔗 <strong>공식 사이트</strong> 버튼: 법무부·홈택스 공식 페이지로 이동
+          </p>
+        </div>
+
+        {/* 드라이브 ID 미설정 안내 (개발용) */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-4 fade-in">
+          <p className="text-[10px] text-amber-700 word-keep">
+            🛠 <strong>운영자 안내:</strong> 구글 드라이브에 파일 업로드 후 <code className="bg-amber-100 px-1 rounded">driveId</code> 값을 실제 파일 ID로 교체하세요.
+            (<code className="bg-amber-100 px-1 rounded">PLACEHOLDER_DRIVE_ID_*</code> → 실제 ID)
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {DOCS.map((doc, i) => {
+            const driveUrl  = doc.driveId && !doc.driveId.includes('PLACEHOLDER')
+              ? `https://drive.google.com/uc?export=download&id=${doc.driveId}`
+              : null;
+            const isPlaceholder = doc.driveId?.includes('PLACEHOLDER');
+            return (
+              <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden fade-in">
+                {/* 서류 정보 */}
+                <div className="px-4 pt-4 pb-3 flex items-start gap-3">
+                  <span className="text-3xl flex-shrink-0">{doc.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                      <p className="text-sm font-black text-gray-800 word-keep">{doc.name}</p>
+                      <span className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded-full flex-shrink-0">{doc.badge}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 word-keep">{doc.desc}</p>
+                  </div>
+                </div>
+
+                {/* 버튼 영역 */}
+                <div className="px-4 pb-3 flex gap-2 border-t border-gray-50 pt-3">
+                  {doc.driveId ? (
+                    /* 구글 드라이브 다운로드 버튼 */
+                    driveUrl ? (
+                      <a href={driveUrl} download={doc.fileName}
+                        className="flex-1 bg-blue-700 text-white text-xs font-black py-2.5 rounded-xl flex items-center justify-center gap-1.5 tap transition active:bg-blue-800">
+                        ⬇️ 다운로드
+                      </a>
+                    ) : (
+                      /* Placeholder 상태: 비활성 버튼 + 안내 */
+                      <button disabled
+                        className="flex-1 bg-gray-100 text-gray-400 text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-not-allowed">
+                        ⬇️ 준비 중 (드라이브 ID 미설정)
+                      </button>
+                    )
+                  ) : null}
+                  {/* 공식 사이트 버튼 */}
+                  <a href={doc.official} target="_blank" rel="noopener noreferrer"
+                    className={`text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 tap transition border ${doc.driveId ? 'flex-shrink-0 px-4 border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-600' : 'flex-1 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100'}`}>
+                    🔗 공식 사이트
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mt-4 fade-in">
+          <p className="text-xs text-red-700 word-keep">⚠️ 관할 출입국마다 추가 서류를 요구할 수 있습니다. 방문 전 반드시 전화로 확인하세요.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   페이지: 게시판 전체보기
+================================================================ */
+function BoardPage({ cat, nav, posts, lang = 'vi', onDeletePost, onUpdatePost, onAddComment, onDeleteComment }) {
+  const m = BOARD_META[cat];
+  const filtered = posts.filter(p=>p.cat===cat);
+  const L = LANG[lang];
+
+  return (
+    <div style={{ background:'#F0F2F5' }} className="min-h-screen">
+      {/* 컬러 헤더 */}
+      <header className={`${m.hCls} sticky top-0 z-50 shadow-md`}>
+        <div className="max-w-lg mx-auto px-4 h-14 flex items-center gap-3">
+          <button onClick={() => nav({ page:'home' })}
+            className={`w-9 h-9 rounded-full bg-black/10 flex items-center justify-center ${m.tCls} text-2xl tap`}>‹</button>
+          <div className="flex-1">
+            <p className={`text-sm font-black ${m.tCls}`}>{m.emoji} {m[lang]}</p>
+            <p className={`text-[10px] ${m.tCls} opacity-70`}>{lang==='vi' ? m.ko : m.vi}</p>
+          </div>
+          <button onClick={() => nav({ page:'write', param:cat })}
+            className={`text-xs font-black ${m.tCls} bg-black/10 hover:bg-black/20 px-3 py-1.5 rounded-full tap transition`}>
+            {L.writeBtn}
+          </button>
+        </div>
+      </header>
+
+      <div className="max-w-lg mx-auto px-3 pt-3 pb-20">
+        {filtered.length === 0 ? (
+          <div className="text-center py-20 fade-in">
+            <div className="text-5xl mb-3">📭</div>
+            <p className="text-sm text-gray-400 mb-4 word-keep">{L.noPost.split('\n').map((t,i)=><span key={i}>{t}{i===0&&<br/>}</span>)}</p>
+            <button onClick={() => nav({ page:'write', param:cat })}
+              className="bg-blue-700 text-white font-bold text-sm px-6 py-3 rounded-xl tap transition">
+              {L.firstPost}
+            </button>
+          </div>
+        ) : (
+          filtered.map(p => (
+            <PostCard key={p.id} post={p} lang={lang}
+              onDelete={onDeletePost}
+              onEdit={(p) => nav({ page:'write', param:p.cat, editPost:p })}
+              onAddComment={onAddComment}
+              onDeleteComment={onDeleteComment} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   페이지: 글쓰기
+================================================================ */
+const CAT_OPTS = [
+  { v:'hall',   e:'🏆', label:'합격 명예의 전당', desc:'합격 인증, 점수 스펙 공유',  sel:'border-yellow-300 bg-yellow-50', t:'text-yellow-700', d:'text-yellow-500' },
+  { v:'sos',    e:'🚨', label:'비자 119 SOS',     desc:'긴급 서류·절차 질문',        sel:'border-red-300 bg-red-50',       t:'text-red-700',    d:'text-red-500' },
+  { v:'bamboo', e:'💬', label:'출입국 참교육방',  desc:'반려·실패담, 출입국 썰',      sel:'border-orange-300 bg-orange-50', t:'text-orange-700', d:'text-orange-500' },
+  { v:'talk',   e:'🟢', label:'자유 토크방',       desc:'비자 외 일상·자유 수다',      sel:'border-green-300 bg-green-50',   t:'text-green-700',  d:'text-green-500' },
+];
+
+const CAT_LABELS_VI = {
+  hall:   { vi:'Bảng Vàng',           desc_vi:'Chia sẻ kết quả đậu' },
+  sos:    { vi:'Cứu Trợ Khẩn Cấp',   desc_vi:'Câu hỏi khẩn về hồ sơ/thủ tục' },
+  bamboo: { vi:'Kinh nghiệm Thực tế', desc_vi:'Trải nghiệm bị từ chối' },
+  talk:   { vi:'Góc Tán Gẫu',         desc_vi:'Tán gẫu tự do, không liên quan visa' },
+};
+
+function WritePage({ initCat, editPost, nav, lang = 'vi', onAddPost, onUpdatePost }) {
+  const isEdit  = !!editPost;
+  const isTalk  = (editPost?.cat || initCat) === 'talk';
+  const [cat, setCat] = useState(editPost?.cat || initCat || 'hall');
+  const [title, setTitle] = useState(editPost?.title || '');
+  const [body, setBody]   = useState(editPost?.body  || '');
+  const [vis, setVis]     = useState(editPost ? (editPost.isPublic ? 'public' : 'private') : 'public');
+  const [pw, setPw]       = useState('');
+  const [toast, setToast] = useState(null);
+  const L = LANG[lang];
+
+  const CAT_LABELS = {
+    hall:   { vi:'Bảng Vàng', ko:'합격 명예의 전당', desc_vi:'Chia sẻ kết quả đậu', desc_ko:'합격 인증, 점수 스펙 공유' },
+    sos:    { vi:'Cứu Trợ Khẩn Cấp',  ko:'비자 119 SOS',     desc_vi:'Câu hỏi khẩn về hồ sơ/thủ tục', desc_ko:'긴급 서류·절차 질문' },
+    bamboo: { vi:'Kinh nghiệm Thực tế', ko:'출입국 참교육방',  desc_vi:'Trải nghiệm bị từ chối', desc_ko:'반려·실패담, 출입국 썰' },
+  };
+
+  function submit() {
+    if (!title.trim() || !body.trim()) { setToast(L.emptyAlert); return; }
+    if (!isEdit) {
+      if (!pw.trim()) { setToast(L.pwEmptyAlert); return; }
+      if (pw.length !== 4) { setToast(L.pwLengthAlert); return; }
+    }
+    if (isEdit) {
+      onUpdatePost(editPost.id, {
+        cat, title: title.trim(), body: body.trim(), isPublic: vis === 'public',
+      });
+    } else {
+      const author = genAuthor();
+      onAddPost({
+        id: Date.now(), cat, author,
+        date: new Date().toLocaleDateString('ko-KR'),
+        title: title.trim(), body: body.trim(),
+        likes:0, hearts:0, wows:0, comments:0, isNew:true,
+        isPublic: vis === 'public',
+        pw,
+      });
+    }
+    nav({ page:'home' });
+  }
+
+  function goBack() {
+    nav({ page:'home' });
+  }
+
+  return (
+    <div style={{ background:'#F0F2F5' }} className="min-h-screen">
+      <BackHeader title={isEdit ? (lang==='vi'?'✏️ Chỉnh sửa bài':'✍️ 글 수정') : L.writePageTitle}
+        onBack={goBack} />
+      <div className="max-w-lg mx-auto px-4 py-4 pb-12">
+
+        {/* 카테고리 선택 — talk에서 진입 시 자유 토크방 고정 표시, 변경 불가 */}
+        {isTalk ? (
+          <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 mb-3 fade-in flex items-center gap-3">
+            <span className="text-xl">🟢</span>
+            <div>
+              <p className="text-xs font-black text-green-700">
+                {lang==='vi' ? 'Góc Tán Gẫu' : '자유 토크방'}
+              </p>
+              <p className="text-[10px] text-green-600">
+                {lang==='vi' ? 'Tán gẫu tự do, không liên quan visa' : '비자 외 일상·자유 수다'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm px-4 py-4 mb-3 fade-in">
+            <p className="text-xs font-black text-gray-500 mb-3">{L.selectBoard}</p>
+            <div className="flex flex-col gap-2">
+              {CAT_OPTS.filter(o => o.v !== 'talk').map(o => {
+                const cl = CAT_LABELS_VI[o.v];
+                return (
+                  <button key={o.v} onClick={() => setCat(o.v)}
+                    className={`text-left px-4 py-3 rounded-xl border-2 transition tap ${cat===o.v ? o.sel : 'border-gray-200 bg-white'}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{o.e}</span>
+                      <div>
+                        <p className={`text-xs font-black ${cat===o.v?o.t:'text-gray-400'}`}>
+                          {lang==='vi' ? cl.vi : o.label}
+                        </p>
+                        <p className={`text-[10px] mt-0.5 ${cat===o.v?o.d:'text-gray-300'}`}>
+                          {lang==='vi' ? cl.desc_vi : o.desc}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 제목 */}
+        <div className="bg-white rounded-2xl shadow-sm px-4 py-3 mb-3 fade-in">
+          <input value={title} onChange={e=>setTitle(e.target.value)} maxLength={60}
+            placeholder={L.titlePlaceholder}
+            className="w-full text-sm font-bold text-gray-800 focus:outline-none placeholder-gray-300" />
+          <div className="text-right text-[10px] text-gray-300 mt-1">{title.length}/60</div>
+        </div>
+
+        {/* 본문 */}
+        <div className="bg-white rounded-2xl shadow-sm px-4 py-3 mb-3 fade-in">
+          <textarea value={body} onChange={e=>setBody(e.target.value)} rows={6}
+            placeholder={L.bodyPlaceholder}
+            className="w-full text-sm text-gray-700 focus:outline-none placeholder-gray-300 resize-none leading-relaxed" />
+        </div>
+
+        {/* 공개 설정 */}
+        <div className="bg-white rounded-2xl shadow-sm px-4 py-4 mb-3 fade-in">
+          <p className="text-xs font-black text-gray-500 mb-3">{L.visLabel}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[['public', L.visPublic, L.visPublicDesc,'border-blue-300 bg-blue-50 text-blue-700'],
+              ['private', L.visPrivate, L.visPrivateDesc,'border-gray-400 bg-gray-100 text-gray-700']].map(([v,l,d,sel])=>(
+              <button key={v} onClick={()=>setVis(v)}
+                className={`py-3 rounded-xl border-2 text-center transition tap ${vis===v?sel:'border-gray-200 text-gray-400'}`}>
+                <p className="text-sm font-bold">{l}</p>
+                <p className="text-[10px] mt-0.5 opacity-70">{d}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 🔑 비밀번호 (신규 작성 시만 표시) */}
+        {!isEdit && (
+          <div className="bg-white rounded-2xl shadow-sm px-4 py-4 mb-3 fade-in">
+            <p className="text-xs font-black text-gray-700 mb-1">{L.pwFieldLabel}</p>
+            <p className="text-[10px] text-gray-400 mb-3">{L.pwFieldNote}</p>
+            <input
+              type="password" inputMode="numeric" maxLength={4}
+              value={pw}
+              onChange={e => setPw(e.target.value.replace(/\D/g,''))}
+              placeholder={L.pwFieldPlaceholder}
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-center text-xl tracking-[0.4em] focus:outline-none focus:border-blue-700 transition"
+            />
+          </div>
+        )}
+
+        {/* 🔒 개인정보 보호 경고 */}
+        <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-3 fade-in">
+          <p className="text-xs font-black text-red-700 mb-2">{L.privacyTitle}</p>
+          <ul className="flex flex-col gap-1.5">
+            {[L.privacy1, L.privacy2, L.privacy3, L.privacy4].map((t,i) => (
+              <li key={i} className="flex items-start gap-1.5 text-xs text-red-600">
+                <span className="flex-shrink-0 mt-0.5">⚠️</span>{t}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* 익명 안내 */}
+        <div className="bg-blue-50 rounded-2xl px-4 py-3 mb-5 flex items-center gap-2 fade-in">
+          <span className="text-lg">🙈</span>
+          <p className="text-xs text-blue-700 word-keep">{L.anonNote}</p>
+        </div>
+
+        {/* 버튼 */}
+        <div className="flex gap-3 fade-in">
+          <button onClick={goBack}
+            className="flex-1 py-4 border border-gray-200 rounded-2xl text-sm font-bold text-gray-500 bg-white tap transition">
+            {L.cancelBtn}
+          </button>
+          <button onClick={submit}
+            className="flex-[2] py-4 bg-blue-700 text-white rounded-2xl text-sm font-black tap transition">
+            {L.submitBtn}
+          </button>
+        </div>
+      </div>
+
+      {toast && <Toast msg={toast} onClose={()=>setToast(null)} />}
+    </div>
+  );
+}
+
+/* ================================================================
+   루트 App — 상태 기반 라우터
+================================================================ */
+function App() {
+  const [route, setRoute] = useState({ page:'home', param:null });
+  const [lang,  setLang]  = useState('vi');                 // 기본 언어: 베트남어
+  const { posts, addPost, deletePost, updatePost, addComment, deleteComment } = usePosts();
+
+  function nav(r) {
+    setRoute(r);
+    window.scrollTo({ top:0, behavior:'instant' });
+  }
+  function toggleLang() { setLang(l => l === 'vi' ? 'ko' : 'vi'); }
+
+  const shared = { nav, posts, lang, onAddPost:addPost, onDeletePost:deletePost, onUpdatePost:updatePost, onAddComment:addComment, onDeleteComment:deleteComment };
+
+  switch (route.page) {
+    case 'guide':     return <GuidePage     type={route.param}     onBack={()=>nav({page:'home'})} lang={lang} />;
+    case 'checklist':
+      if (route.param==='sales') return <SalesPage onBack={()=>nav({page:'home'})} lang={lang} />;
+      if (route.param==='score') return <ScorePage onBack={()=>nav({page:'home'})} lang={lang} />;
+      return null;
+    case 'docs':      return <DocsPage      onBack={()=>nav({page:'home'})} lang={lang} />;
+    case 'board':     return <BoardPage     cat={route.param}      {...shared} />;
+    case 'write':     return <WritePage     initCat={route.param}  editPost={route.editPost} {...shared} />;
+    default:          return <HomePage      {...shared} toggleLang={toggleLang} />;
+  }
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

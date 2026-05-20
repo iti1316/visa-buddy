@@ -986,7 +986,7 @@ const GRID_BTNS = [
   { e:'💰', ko:'매출/실적 증빙 팁',  vi:'Tip chứng minh doanh thu',    bg:'bg-green-600',  act:()=>({page:'checklist',param:'sales'}) },
   { e:'📊', ko:'E-7-4 점수 체크',   vi:'Bảng điểm E-7-4',             bg:'bg-amber-500',  act:()=>({page:'checklist',param:'score'}) },
   { e:'📋', ko:'필수 서류 다운로드', vi:'Tải tài liệu cần thiết',      bg:'bg-red-600',    act:()=>({page:'docs',    param:null}) },
-  { e:'🗂️', ko:'출입국 예약 링크',  vi:'Đặt lịch Cục XNC',            bg:'bg-violet-600', act:null, href:'https://www.hikorea.go.kr' },
+  { e:'🗂️', ko:'출입국 예약 링크',  vi:'Đặt lịch Cục XNC',            bg:'bg-violet-600', act:()=>({page:'office', param:null}) },
 ];
 
 const BOARD_META = {
@@ -1507,60 +1507,192 @@ function DDaySection({ lang }) {
 }
 
 /* ================================================================
-   📞 출입국 사무소 연락처
+   📞 전국 출입국 사무소 데이터
+   region: seoul(서울) | gyeonggi(경기·인천) | chungcheong(충청)
+           gyeongsang(경상) | jeolla(전라) | gangwon(강원) | jeju(제주)
 ================================================================ */
 const OFFICES = [
-  { name:'수원출입국·외국인사무소', addr:'경기 수원시 영통구 도청로 30', tel:'031-695-2000', book:'https://www.hikorea.go.kr' },
-  { name:'인천출입국·외국인사무소', addr:'인천 남동구 은봉로 82',        tel:'032-890-6300', book:'https://www.hikorea.go.kr' },
-  { name:'서울출입국·외국인청',     addr:'서울 양천구 목동동로 151',      tel:'1345',         book:'https://www.hikorea.go.kr' },
-  { name:'안산출입국·외국인사무소', addr:'경기 안산시 단원구 적금로 113', tel:'031-481-3400', book:'https://www.hikorea.go.kr' },
-  { name:'부산출입국·외국인청',     addr:'부산 강서구 공항진입로 108',    tel:'051-620-7000', book:'https://www.hikorea.go.kr' },
+  /* ── 서울 ── */
+  { region:'seoul',       name:'서울출입국·외국인청',       addr:'서울 양천구 목동동로 151',            tel:'02-2650-6200', book:'https://www.hikorea.go.kr' },
+  { region:'seoul',       name:'서울남부출입국·외국인사무소', addr:'서울 영등포구 버드나루로 16',          tel:'02-2650-6234', book:'https://www.hikorea.go.kr' },
+  { region:'seoul',       name:'서울동부출입국·외국인사무소', addr:'서울 광진구 구천면로 345',            tel:'02-2204-4500', book:'https://www.hikorea.go.kr' },
+  { region:'seoul',       name:'서울북부출입국·외국인사무소', addr:'서울 서대문구 통일로 97',             tel:'02-2088-5400', book:'https://www.hikorea.go.kr' },
+  /* ── 경기·인천 ── */
+  { region:'gyeonggi',    name:'인천출입국·외국인사무소',    addr:'인천 남동구 은봉로 82',               tel:'032-890-6300', book:'https://www.hikorea.go.kr' },
+  { region:'gyeonggi',    name:'수원출입국·외국인사무소',    addr:'경기 수원시 영통구 도청로 30',         tel:'031-695-2000', book:'https://www.hikorea.go.kr' },
+  { region:'gyeonggi',    name:'안산출입국·외국인사무소',    addr:'경기 안산시 단원구 적금로 113',        tel:'031-481-3400', book:'https://www.hikorea.go.kr' },
+  { region:'gyeonggi',    name:'의정부출입국·외국인사무소',  addr:'경기 의정부시 청사로 1',               tel:'031-870-3015', book:'https://www.hikorea.go.kr' },
+  { region:'gyeonggi',    name:'화성출입국·외국인사무소',    addr:'경기 화성시 병점중앙로 161',           tel:'031-8015-7800', book:'https://www.hikorea.go.kr' },
+  { region:'gyeonggi',    name:'평택출입국·외국인사무소',    addr:'경기 평택시 평택로 222',               tel:'031-640-4400', book:'https://www.hikorea.go.kr' },
+  { region:'gyeonggi',    name:'김포출입국·외국인사무소',    addr:'경기 김포시 김포한강8로 67',           tel:'031-980-5000', book:'https://www.hikorea.go.kr' },
+  /* ── 충청 ── */
+  { region:'chungcheong', name:'대전출입국·외국인사무소',    addr:'대전 서구 청사로 189',                tel:'042-480-2400', book:'https://www.hikorea.go.kr' },
+  { region:'chungcheong', name:'청주출입국·외국인사무소',    addr:'충북 청주시 상당구 상당로 82',         tel:'043-240-4200', book:'https://www.hikorea.go.kr' },
+  { region:'chungcheong', name:'천안출입국·외국인사무소',    addr:'충남 천안시 동남구 청수14로 58',       tel:'041-560-6400', book:'https://www.hikorea.go.kr' },
+  /* ── 경상 ── */
+  { region:'gyeongsang',  name:'부산출입국·외국인청',        addr:'부산 강서구 공항진입로 108',           tel:'051-620-7000', book:'https://www.hikorea.go.kr' },
+  { region:'gyeongsang',  name:'대구출입국·외국인사무소',    addr:'대구 중구 태평로 161',                tel:'053-230-6700', book:'https://www.hikorea.go.kr' },
+  { region:'gyeongsang',  name:'울산출입국·외국인사무소',    addr:'울산 중구 서원로 15',                 tel:'052-210-3100', book:'https://www.hikorea.go.kr' },
+  { region:'gyeongsang',  name:'창원출입국·외국인사무소',    addr:'경남 창원시 성산구 중앙대로 88',       tel:'055-280-4200', book:'https://www.hikorea.go.kr' },
+  { region:'gyeongsang',  name:'포항출입국·외국인사무소',    addr:'경북 포항시 남구 포항운하로 103',      tel:'054-291-3400', book:'https://www.hikorea.go.kr' },
+  { region:'gyeongsang',  name:'구미출입국·외국인사무소',    addr:'경북 구미시 송정대로 67',              tel:'054-440-6500', book:'https://www.hikorea.go.kr' },
+  /* ── 전라 ── */
+  { region:'jeolla',      name:'광주출입국·외국인사무소',    addr:'광주 북구 첨단과기로 208',             tel:'062-608-3800', book:'https://www.hikorea.go.kr' },
+  { region:'jeolla',      name:'전주출입국·외국인사무소',    addr:'전북 전주시 덕진구 팔달로 340',        tel:'063-270-3200', book:'https://www.hikorea.go.kr' },
+  { region:'jeolla',      name:'여수출입국·외국인사무소',    addr:'전남 여수시 선소동길 19',              tel:'061-659-9000', book:'https://www.hikorea.go.kr' },
+  /* ── 강원 ── */
+  { region:'gangwon',     name:'춘천출입국·외국인사무소',    addr:'강원 춘천시 수변공원길 36',            tel:'033-248-4000', book:'https://www.hikorea.go.kr' },
+  /* ── 제주 ── */
+  { region:'jeju',        name:'제주출입국·외국인사무소',    addr:'제주 제주시 도령로 97',               tel:'064-720-4400', book:'https://www.hikorea.go.kr' },
 ];
 
-function OfficeSection({ lang }) {
-  const L = LANG[lang];
-  const [open, setOpen] = useState(null);
+const OFFICE_REGIONS = [
+  { key:'all',          label:'전체',     vi:'Tất cả' },
+  { key:'seoul',        label:'서울',     vi:'Seoul' },
+  { key:'gyeonggi',     label:'경기·인천', vi:'Gyeonggi·Incheon' },
+  { key:'chungcheong',  label:'충청',     vi:'Chungcheong' },
+  { key:'gyeongsang',   label:'경상',     vi:'Gyeongsang' },
+  { key:'jeolla',       label:'전라',     vi:'Jeolla' },
+  { key:'gangwon',      label:'강원',     vi:'Gangwon' },
+  { key:'jeju',         label:'제주',     vi:'Jeju' },
+];
+
+/* ================================================================
+   🏛️ 출입국 사무소 페이지 (전국 + 지역 필터 + 검색)
+================================================================ */
+function OfficePage({ onBack, lang }) {
+  const [region, setRegion] = useState('all');
+  const [query, setQuery]   = useState('');
+
+  const filtered = OFFICES.filter(o => {
+    const matchRegion = region === 'all' || o.region === region;
+    const q = query.trim().toLowerCase();
+    const matchQuery = !q || o.name.toLowerCase().includes(q) || o.addr.toLowerCase().includes(q);
+    return matchRegion && matchQuery;
+  });
+
   return (
-    <section className="mt-3 px-3 pb-3">
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-          <span className="text-base">📞</span>
-          <div>
-            <p className="text-sm font-black text-gray-800">{L.officeTitle}</p>
-            <p className="text-[10px] text-gray-400">{L.officeSub}</p>
+    <div style={{ background:'#F0F2F5', minHeight:'100vh' }}>
+      {/* 헤더 */}
+      <header className="bg-blue-700 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-lg mx-auto px-4 h-14 flex items-center gap-3">
+          <button onClick={onBack} className="text-white text-xl tap">←</button>
+          <div className="flex-1">
+            <p className="text-white font-black text-sm leading-none">🏛️ 출입국 사무소</p>
+            <p className="text-blue-200 text-[10px] mt-0.5">{lang==='ko' ? '전국 출입국 연락처 & 예약' : 'Liên hệ & Đặt lịch Cục XNC toàn quốc'}</p>
           </div>
         </div>
-        <ul className="divide-y divide-gray-100">
-          {OFFICES.map((o, i) => (
-            <li key={i}>
-              <div onClick={() => setOpen(open === i ? null : i)}
-                className={`px-4 py-3 flex items-center justify-between cursor-pointer transition ${open===i ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                <div className="flex items-center gap-2.5">
-                  <span className="text-base">🏛️</span>
-                  <p className={`text-xs font-bold word-keep ${open===i ? 'text-blue-700' : 'text-gray-800'}`}>{o.name}</p>
-                </div>
-                <span className={`text-gray-400 text-sm transition-transform duration-200 ${open===i ? 'rotate-180' : ''}`}>⌄</span>
-              </div>
-              {open === i && (
-                <div className="bg-blue-50 border-t border-blue-100 px-4 py-3 fade-in">
-                  <p className="text-[11px] text-gray-500 mb-3">📍 {o.addr}</p>
-                  <div className="flex gap-2">
-                    <a href={`tel:${o.tel}`}
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-blue-700 text-white text-xs font-black py-2.5 rounded-xl tap">
-                      📞 {L.officeCall} {o.tel}
-                    </a>
-                    <a href={o.book} target="_blank" rel="noopener noreferrer"
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-blue-200 text-blue-700 text-xs font-black py-2.5 rounded-xl tap">
-                      📅 {L.officeBook}
-                    </a>
+      </header>
+
+      <div className="max-w-lg mx-auto px-3 pt-3 pb-24">
+
+        {/* 통합 콜센터 배너 */}
+        <a href="tel:1345" className="block mb-3">
+          <div className="bg-blue-700 rounded-2xl px-4 py-3.5 flex items-center gap-3 tap shadow">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl flex-shrink-0">📞</div>
+            <div className="flex-1">
+              <p className="text-white font-black text-sm">{lang==='ko' ? '출입국 통합 안내 콜센터' : 'Tổng đài tư vấn xuất nhập cảnh'}</p>
+              <p className="text-blue-200 text-[11px]">{lang==='ko' ? '24시간 연결 가능 · 한국어/외국어' : 'Hoạt động 24h · Tiếng Hàn/Ngoại ngữ'}</p>
+            </div>
+            <span className="text-white font-black text-xl">1345</span>
+          </div>
+        </a>
+
+        {/* 검색창 */}
+        <div className="bg-white rounded-2xl shadow-sm px-3 py-2.5 mb-3 flex items-center gap-2">
+          <span className="text-gray-400 text-base">🔍</span>
+          <input
+            type="search"
+            placeholder={lang==='ko' ? '사무소 이름·지역으로 검색' : 'Tìm theo tên hoặc khu vực'}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            className="flex-1 text-sm text-gray-800 outline-none placeholder-gray-300"
+          />
+          {query && (
+            <button onClick={() => setQuery('')} className="text-gray-300 font-bold text-sm tap">✕</button>
+          )}
+        </div>
+
+        {/* 지역 필터 탭 (가로 스크롤) */}
+        <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-hide" style={{ scrollbarWidth:'none' }}>
+          {OFFICE_REGIONS.map(r => (
+            <button
+              key={r.key}
+              onClick={() => setRegion(r.key)}
+              className={`flex-shrink-0 text-xs font-bold px-3.5 py-1.5 rounded-full transition tap ${
+                region === r.key
+                  ? 'bg-blue-700 text-white shadow'
+                  : 'bg-white text-gray-600 border border-gray-200'
+              }`}
+            >
+              {lang==='ko' ? r.label : r.vi}
+            </button>
+          ))}
+        </div>
+
+        {/* 결과 수 */}
+        <p className="text-[11px] text-gray-400 mb-2 px-1">
+          {lang==='ko' ? `${filtered.length}개 사무소` : `${filtered.length} văn phòng`}
+        </p>
+
+        {/* 사무소 목록 */}
+        {filtered.length === 0 ? (
+          <div className="bg-white rounded-2xl p-8 text-center text-gray-400 text-sm">
+            {lang==='ko' ? '검색 결과가 없습니다' : 'Không tìm thấy kết quả'}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {filtered.map((o, i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-4 pt-3.5 pb-1">
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-lg mt-0.5 flex-shrink-0">🏛️</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-gray-800 word-keep leading-snug">{o.name}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5 word-keep leading-relaxed">📍 {o.addr}</p>
+                    </div>
                   </div>
                 </div>
-              )}
-            </li>
-          ))}
-        </ul>
+                <div className="px-3 pb-3 flex gap-2 mt-2">
+                  <a
+                    href={`tel:${o.tel}`}
+                    className="flex-1 flex items-center justify-center gap-1 bg-blue-700 text-white text-xs font-black py-2.5 rounded-xl tap shadow-sm"
+                  >
+                    📞 {o.tel}
+                  </a>
+                  <a
+                    href={o.book}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-1 bg-white border-2 border-blue-200 text-blue-700 text-xs font-black py-2.5 rounded-xl tap"
+                  >
+                    🗓️ {lang==='ko' ? 'Hi-Korea 예약' : 'Đặt lịch'}
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Hi-Korea 안내 */}
+        <div className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+          <p className="text-[11px] text-amber-800 font-bold mb-1">💡 {lang==='ko' ? '예약 안내' : 'Hướng dẫn đặt lịch'}</p>
+          <p className="text-[11px] text-amber-700 leading-relaxed word-keep">
+            {lang==='ko'
+              ? '온라인 예약은 Hi-Korea(www.hikorea.go.kr) 로그인 후 민원예약에서 가능합니다. 만료 3개월 전 예약을 권장합니다.'
+              : 'Đặt lịch online tại Hi-Korea (www.hikorea.go.kr) sau khi đăng nhập → Đặt lịch dịch vụ. Nên đặt trước 3 tháng khi hết hạn.'}
+          </p>
+        </div>
+
+        {/* 메인으로 돌아가기 */}
+        <button
+          onClick={onBack}
+          className="mt-4 w-full bg-blue-700 text-white font-black py-3.5 rounded-2xl tap shadow"
+        >
+          {lang==='ko' ? '← 메인으로 돌아가기' : '← Về trang chính'}
+        </button>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -1691,9 +1823,6 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
 
         {/* ── 비자 D-Day 계산기 ── */}
         <DDaySection lang={lang} />
-
-        {/* ── 출입국 사무소 연락처 ── */}
-        <OfficeSection lang={lang} />
 
         {/* ── 자유 토크방 리스트 (talkOpen=true) OR 3대 게시판 피드 (talkOpen=false) ── */}
         <div ref={talkRef} />
@@ -2437,6 +2566,7 @@ function App() {
       if (route.param==='score') return <ScorePage onBack={()=>nav({page:'home'})} lang={lang} />;
       return null;
     case 'docs':      return <DocsPage      onBack={()=>nav({page:'home'})} lang={lang} />;
+    case 'office':    return <OfficePage    onBack={()=>nav({page:'home'})} lang={lang} />;
     case 'board':     return <BoardPage     cat={route.param}      {...shared} />;
     case 'write':     return <WritePage     initCat={route.param}  editPost={route.editPost} {...shared} />;
     default:          return <HomePage      {...shared} toggleLang={toggleLang} />;

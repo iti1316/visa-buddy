@@ -1231,7 +1231,15 @@ const LANG = {
 function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onAddComment, onDeleteComment, toggleLang }) {
   const { news, loading, isLive, errMsg, refetch } = useNews();
   const [talkOpen, setTalkOpen] = useState(false);
+  const talkRef = useRef(null);
   const L = LANG[lang];
+
+  function openTalk() {
+    setTalkOpen(true);
+    setTimeout(() => {
+      talkRef.current?.scrollIntoView({ behavior:'smooth', block:'start' });
+    }, 50);
+  }
 
   return (
     <div style={{ background:'#F0F2F5' }}>
@@ -1302,7 +1310,7 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
         {/* ── 🟢 자유 토크방 와이드 버튼 ── */}
         <section className="mt-3 px-3">
           <button
-            onClick={() => setTalkOpen(o => !o)}
+            onClick={() => talkOpen ? setTalkOpen(false) : openTalk()}
             className={`w-full rounded-2xl shadow-md tap transition-all overflow-hidden
               ${talkOpen
                 ? 'bg-gradient-to-r from-green-600 to-emerald-500 ring-4 ring-green-300'
@@ -1404,6 +1412,7 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
         </section>
 
         {/* ── 자유 토크방 리스트 (talkOpen=true) OR 3대 게시판 피드 (talkOpen=false) ── */}
+        <div ref={talkRef} />
         {talkOpen ? (
           /* 자유 토크방 — 네이버 카페 스타일 리스트 */
           <TalkListView

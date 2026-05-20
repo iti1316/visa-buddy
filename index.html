@@ -117,109 +117,6 @@ function defaultPosts() {
   ];
 }
 
-/* ── 더미 뉴스 (API 실패 시 폴백) ──────────────────────────── */
-const DUMMY_NEWS = [
-  { id:'n1', badge:'법무부', date:'2025.05.15', title:'E-7-4 소득 기준 2025년 최저임금으로 업데이트', hot:true,  link:'https://www.moj.go.kr' },
-  { id:'n2', badge:'출입국', date:'2025.05.12', title:'수원출입국 E-7-4 예약 6월 이후 대기 4주 — 마감 주의', hot:true, link:'https://www.hikorea.go.kr' },
-  { id:'n3', badge:'법무부', date:'2025.05.08', title:'D-9 체류자격 연장 시 임금대장 제출 서식 변경 안내', hot:false, link:'https://www.moj.go.kr' },
-  { id:'n4', badge:'고용부', date:'2025.04.28', title:'2025년 최저임금 시급 10,030원 / 월 2,096,270원 확정', hot:false, link:'https://www.moel.go.kr' },
-];
-
-/* ── 커스텀 훅: 뉴스 fetch (KO + VI 다국어 병렬 쿼리) ───────── */
-/**
- * RSS_QUERIES: 한국어 + 베트남어 구글 뉴스 피드를 동시에 요청합니다.
- * - KO: 법무부·출입국 공식 채널 키워드
- * - VI: 베트남 현지 유저 관점의 한국 비자 뉴스 키워드
- * rss2json.com API가 CORS 없이 RSS → JSON 변환을 제공합니다.
- */
-const RSS_QUERIES = [
-  {
-    rss:   'https://news.google.com/rss/search?q=E-7-4+비자+출입국+법무부&hl=ko&gl=KR&ceid=KR:ko',
-    lang:  'KO', badge:'법무부·출입국', count: 3,
-  },
-  {
-    rss:   'https://news.google.com/rss/search?q=D-9+비자+연장+체류자격+고시&hl=ko&gl=KR&ceid=KR:ko',
-    lang:  'KO', badge:'출입국 고시', count: 2,
-  },
-  {
-    rss:   'https://news.google.com/rss/search?q=Visa+E-7-4+H%C3%A0n+Qu%E1%BB%91c+xu%E1%BA%A5t+nh%E1%BA%ADp+c%E1%BA%A3nh&hl=vi&gl=VN&ceid=VN:vi',
-    lang:  'VI', badge:'🇻🇳 베트남 뉴스', count: 2,
-  },
-  {
-    rss:   'https://news.google.com/rss/search?q=Gia+h%E1%BA%A1n+visa+D-9+H%C3%A0n+Qu%E1%BB%91c+lao+%C4%91%E1%BB%99ng&hl=vi&gl=VN&ceid=VN:vi',
-    lang:  'VI', badge:'🇻🇳 D-9 gia hạn', count: 2,
-  },
-];
-
-function useNews() {
-  const [news, setNews]       = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isLive, setIsLive]   = useState(false);
-  const [errMsg, setErrMsg]   = useState('');
-
-  /** 단일 RSS 쿼리를 fetch → 아이템 배열 반환 (실패 시 빈 배열) */
-  async function fetchOneFeed(q, signal) {
-    const API = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(q.rss)}&count=${q.count}`;
-    const res  = await fetch(API, { signal });
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (data.status !== 'ok' || !data.items?.length) return [];
-    return data.items.map(item => ({
-      id:    item.guid || item.link,
-      badge: q.badge,
-      lang:  q.lang,
-      date:  new Date(item.pubDate).toLocaleDateString('ko-KR'),
-      // 구글 뉴스 출처 suffix(" - 조선일보" 등) 제거
-      title: item.title.replace(/ - [^-]{2,30}$/, '').trim(),
-      hot:   false,
-      link:  item.link,
-    }));
-  }
-
-  /**
-   * fetchVisaNews
-   * 4개 RSS 쿼리(한국어 2 + 베트남어 2)를 Promise.allSettled로
-   * 병렬 요청한 뒤 KO·VI를 교차 인터리빙하여 섞어서 반환합니다.
-   * 타임아웃 8초 → 실패 시 DUMMY_NEWS 폴백.
-   */
-  const fetchVisaNews = useCallback(async () => {
-    setLoading(true);
-    setErrMsg('');
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
-    try {
-      const results = await Promise.allSettled(
-        RSS_QUERIES.map(q => fetchOneFeed(q, controller.signal))
-      );
-      const koItems = results.filter((r,i)=>r.status==='fulfilled'&&RSS_QUERIES[i].lang==='KO').flatMap(r=>r.value);
-      const viItems = results.filter((r,i)=>r.status==='fulfilled'&&RSS_QUERIES[i].lang==='VI').flatMap(r=>r.value);
-
-      // KO·VI 교차 인터리빙: [KO, VI, KO, VI, ...]
-      const merged = [];
-      const maxLen = Math.max(koItems.length, viItems.length);
-      for (let i = 0; i < maxLen; i++) {
-        if (koItems[i]) merged.push(koItems[i]);
-        if (viItems[i]) merged.push(viItems[i]);
-      }
-      // HOT 표시: 가장 최신 2건
-      merged.slice(0, 2).forEach(n => { n.hot = true; });
-
-      if (!merged.length) throw new Error('모든 피드 비어있음');
-      setNews(merged);
-      setIsLive(true);
-    } catch (e) {
-      setErrMsg(e.name === 'AbortError' ? '연결 시간 초과' : e.message);
-      setNews(DUMMY_NEWS);
-      setIsLive(false);
-    } finally {
-      clearTimeout(timer);
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchVisaNews(); }, [fetchVisaNews]);
-  return { news, loading, isLive, errMsg, refetch: fetchVisaNews };
-}
 
 /* ── 커스텀 훅: 게시글 (LocalStorage) ──────────────────────── */
 function usePosts() {
@@ -1103,10 +1000,17 @@ const LANG = {
   vi: {
     tagline:'Cộng đồng D-9 → E-7-4 🇻🇳',
     quickMenu:'Menu Nhanh', quickMenuSub:'Nhấn để di chuyển',
-    newsTitle:'Tin tức Visa & Thông báo Xuất nhập cảnh',
-    newsRefresh:'Làm mới', newsLoading:'Đang tải…',
-    newsLiveFail:'Kết nối thất bại ({err}) — Hiển thị dữ liệu lưu.',
-    translateBtn:'Xem bản dịch 🌐',
+    ddayTitle:'D-Day Hết Hạn Visa', ddaySub:'Nhập ngày hết hạn để tính tự động',
+    ddayLabel:'Ngày hết hạn visa', ddayType:'Loại visa',
+    ddayD9:'D-9 (Thương mại)', ddayE74:'E-7-4 (Lao động kỹ năng)',
+    ddayExpired:'Đã hết hạn', ddayToday:'Hết hạn hôm nay!',
+    ddayDays:'ngày còn lại', ddayApply:'Ngày có thể nộp đơn',
+    ddayApplyMsg:'Có thể nộp đơn ngay!', ddayNotSet:'Vui lòng nhập ngày hết hạn',
+    ddayApplyAvail:'Có thể nộp đơn rồi!',
+    ddayApplyNotYet:'Ngày còn lại đến khi nộp đơn',
+    officeTitle:'Liên hệ Cục Xuất Nhập Cảnh', officeSub:'Số điện thoại · Địa chỉ · Đặt lịch',
+    officeCall:'Gọi', officeBook:'Đặt lịch',
+    noticeTitle:'Thông báo từ Quản trị viên', noticeSub:'Thông tin quan trọng',
     viewAll:'Xem tất cả', writeFab:'✏️ Viết bài', writeBtn:'✏️ Viết bài',
     firstPost:'✏️ Viết bài đầu tiên',
     noPost:'Chưa có bài viết.\nHãy chia sẻ trải nghiệm của bạn!',
@@ -1166,10 +1070,17 @@ const LANG = {
   ko: {
     tagline:'D-9 → E-7-4 커뮤니티 🇻🇳',
     quickMenu:'Quick Menu', quickMenuSub:'탭 하면 바로 이동',
-    newsTitle:'최신 비자 정책 & 출입국 고시',
-    newsRefresh:'새로고침', newsLoading:'로딩 중…',
-    newsLiveFail:'실시간 연동 실패 ({err}) — 최근 저장 데이터 표시.',
-    translateBtn:'번역 보기 🌐',
+    ddayTitle:'비자 만료일 D-Day', ddaySub:'만료일을 입력하면 자동 계산됩니다',
+    ddayLabel:'비자 만료일', ddayType:'비자 종류',
+    ddayD9:'D-9 (무역·주재)', ddayE74:'E-7-4 (숙련기능인력)',
+    ddayExpired:'만료됨', ddayToday:'오늘 만료!',
+    ddayDays:'일 남음', ddayApply:'신청 가능일',
+    ddayApplyMsg:'지금 신청 가능!', ddayNotSet:'만료일을 입력해주세요',
+    ddayApplyAvail:'신청 가능 (지금 접수하세요!)',
+    ddayApplyNotYet:'신청 가능일까지',
+    officeTitle:'출입국 사무소 연락처', officeSub:'전화·주소·예약 링크 모음',
+    officeCall:'전화', officeBook:'예약',
+    noticeTitle:'운영자 공지', noticeSub:'중요 안내사항',
     viewAll:'전체 보기', writeFab:'✏️ 글쓰기', writeBtn:'✏️ 글쓰기',
     firstPost:'✏️ 첫 글 작성하기',
     noPost:'아직 게시글이 없어요.\n첫 번째 경험을 공유해 주세요!',
@@ -1228,8 +1139,218 @@ const LANG = {
   },
 };
 
+/* ================================================================
+   📢 운영자 공지 카드
+   — ADMIN_NOTICES 배열만 수정하면 공지 내용 변경 가능
+================================================================ */
+const ADMIN_NOTICES = [
+  {
+    id:1, urgent: true,
+    date:'2025.05.20',
+    ko:'📌 E-7-4 소득 기준: 반드시 세후(실수령액) 기준으로 임금대장을 작성하세요. 세전 기준 제출 시 탈락 사유가 됩니다.',
+    vi:'📌 Tiêu chuẩn thu nhập E-7-4: Bảng lương PHẢI ghi theo thu nhập thực nhận (sau thuế). Nộp theo lương trước thuế sẽ bị từ chối.',
+  },
+  {
+    id:2, urgent: false,
+    date:'2025.05.18',
+    ko:'📋 수원출입국 예약 현재 4주 대기 중. 만료 3개월 전부터 예약하는 것을 강력 권장합니다.',
+    vi:'📋 Cục XNC Suwon hiện đang chờ 4 tuần. Khuyến nghị đặt lịch từ 3 tháng trước khi hết hạn.',
+  },
+];
+
+function NoticeSection({ lang }) {
+  const L = LANG[lang];
+  return (
+    <section className="mt-3 px-3">
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+          <span className="text-base">📢</span>
+          <div>
+            <p className="text-sm font-black text-gray-800">{L.noticeTitle}</p>
+            <p className="text-[10px] text-gray-400">{L.noticeSub}</p>
+          </div>
+        </div>
+        <ul className="divide-y divide-gray-100">
+          {ADMIN_NOTICES.map(n => (
+            <li key={n.id} className="px-4 py-3 flex items-start gap-2.5">
+              {n.urgent && (
+                <span className="flex-shrink-0 text-[9px] font-black text-white bg-red-500 px-1.5 py-0.5 rounded-full mt-0.5">중요</span>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-700 word-keep leading-relaxed">{n[lang]}</p>
+                <p className="text-[10px] text-gray-400 mt-1">{n.date}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ================================================================
+   🗓️ 비자 D-Day 계산기
+================================================================ */
+function DDaySection({ lang }) {
+  const L = LANG[lang];
+  const STORE = 'vb_dday';
+  const [expiry, setExpiry] = useState(() => localStorage.getItem(STORE) || '');
+  const [visaType, setVisaType] = useState('d9');
+
+  function saveExpiry(val) {
+    setExpiry(val);
+    localStorage.setItem(STORE, val);
+  }
+
+  const result = (() => {
+    if (!expiry) return null;
+    const today  = new Date(); today.setHours(0,0,0,0);
+    const exp    = new Date(expiry); exp.setHours(0,0,0,0);
+    const diff   = Math.round((exp - today) / (1000 * 60 * 60 * 24));
+    const applyMonths = visaType === 'd9' ? 4 : 2;
+    const applyDate   = new Date(exp);
+    applyDate.setMonth(applyDate.getMonth() - applyMonths);
+    const applyDiff   = Math.round((applyDate - today) / (1000 * 60 * 60 * 24));
+    return { diff, applyDate, applyDiff };
+  })();
+
+  const statusColor = !result ? 'bg-gray-50 border-gray-200'
+    : result.diff < 0    ? 'bg-red-50 border-red-300'
+    : result.diff < 30   ? 'bg-red-50 border-red-200'
+    : result.diff < 90   ? 'bg-yellow-50 border-yellow-200'
+    : 'bg-green-50 border-green-200';
+
+  const numColor = !result ? 'text-gray-400'
+    : result.diff < 0  ? 'text-red-600'
+    : result.diff < 30 ? 'text-red-500'
+    : result.diff < 90 ? 'text-yellow-600'
+    : 'text-green-600';
+
+  return (
+    <section className="mt-3 px-3">
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+          <span className="text-base">🗓️</span>
+          <div>
+            <p className="text-sm font-black text-gray-800">{L.ddayTitle}</p>
+            <p className="text-[10px] text-gray-400">{L.ddaySub}</p>
+          </div>
+        </div>
+        <div className="px-4 py-4">
+          {/* 입력 영역 */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 mb-1">{L.ddayLabel}</p>
+              <input type="date" value={expiry} onChange={e => saveExpiry(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-400 text-gray-700" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 mb-1">{L.ddayType}</p>
+              <select value={visaType} onChange={e => setVisaType(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-400 text-gray-700 bg-white">
+                <option value="d9">{L.ddayD9}</option>
+                <option value="e74">{L.ddayE74}</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 결과 카드 */}
+          <div className={`border-2 rounded-2xl px-4 py-4 text-center ${statusColor}`}>
+            {!result ? (
+              <p className="text-xs text-gray-400">{L.ddayNotSet}</p>
+            ) : result.diff < 0 ? (
+              <p className="text-lg font-black text-red-600">{L.ddayExpired} ⚠️</p>
+            ) : result.diff === 0 ? (
+              <p className="text-lg font-black text-red-600">{L.ddayToday} ⚠️</p>
+            ) : (
+              <>
+                <p className={`text-4xl font-black ${numColor}`}>D-{result.diff}</p>
+                <p className="text-xs text-gray-500 mt-1">{L.ddayDays}</p>
+              </>
+            )}
+
+            {result && result.diff >= 0 && (
+              <div className="mt-3 pt-3 border-t border-black/10">
+                <p className="text-[10px] text-gray-500 font-bold">{L.ddayApply}</p>
+                <p className="text-xs font-black mt-0.5">
+                  {result.applyDate.toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'ko-KR')}
+                </p>
+                <p className={`text-[10px] mt-0.5 font-bold ${result.applyDiff <= 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                  {result.applyDiff <= 0
+                    ? `✅ ${L.ddayApplyAvail}`
+                    : `${L.ddayApplyNotYet} ${result.applyDiff}일`}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ================================================================
+   📞 출입국 사무소 연락처
+================================================================ */
+const OFFICES = [
+  { name:'수원출입국·외국인사무소', addr:'경기 수원시 영통구 도청로 30', tel:'031-695-2000', book:'https://www.hikorea.go.kr' },
+  { name:'인천출입국·외국인사무소', addr:'인천 남동구 은봉로 82',        tel:'032-890-6300', book:'https://www.hikorea.go.kr' },
+  { name:'서울출입국·외국인청',     addr:'서울 양천구 목동동로 151',      tel:'1345',         book:'https://www.hikorea.go.kr' },
+  { name:'안산출입국·외국인사무소', addr:'경기 안산시 단원구 적금로 113', tel:'031-481-3400', book:'https://www.hikorea.go.kr' },
+  { name:'부산출입국·외국인청',     addr:'부산 강서구 공항진입로 108',    tel:'051-620-7000', book:'https://www.hikorea.go.kr' },
+];
+
+function OfficeSection({ lang }) {
+  const L = LANG[lang];
+  const [open, setOpen] = useState(null);
+  return (
+    <section className="mt-3 px-3 pb-3">
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+          <span className="text-base">📞</span>
+          <div>
+            <p className="text-sm font-black text-gray-800">{L.officeTitle}</p>
+            <p className="text-[10px] text-gray-400">{L.officeSub}</p>
+          </div>
+        </div>
+        <ul className="divide-y divide-gray-100">
+          {OFFICES.map((o, i) => (
+            <li key={i}>
+              <div onClick={() => setOpen(open === i ? null : i)}
+                className={`px-4 py-3 flex items-center justify-between cursor-pointer transition ${open===i ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-base">🏛️</span>
+                  <p className={`text-xs font-bold word-keep ${open===i ? 'text-blue-700' : 'text-gray-800'}`}>{o.name}</p>
+                </div>
+                <span className={`text-gray-400 text-sm transition-transform duration-200 ${open===i ? 'rotate-180' : ''}`}>⌄</span>
+              </div>
+              {open === i && (
+                <div className="bg-blue-50 border-t border-blue-100 px-4 py-3 fade-in">
+                  <p className="text-[11px] text-gray-500 mb-3">📍 {o.addr}</p>
+                  <div className="flex gap-2">
+                    <a href={`tel:${o.tel}`}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-blue-700 text-white text-xs font-black py-2.5 rounded-xl tap">
+                      📞 {L.officeCall} {o.tel}
+                    </a>
+                    <a href={o.book} target="_blank" rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-blue-200 text-blue-700 text-xs font-black py-2.5 rounded-xl tap">
+                      📅 {L.officeBook}
+                    </a>
+                  </div>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ================================================================
+   페이지: 메인(Home)
+================================================================ */
 function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onAddComment, onDeleteComment, toggleLang }) {
-  const { news, loading, isLive, errMsg, refetch } = useNews();
   const [talkOpen, setTalkOpen] = useState(false);
   const talkRef = useRef(null);
   const L = LANG[lang];
@@ -1346,63 +1467,14 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
           </button>
         </section>
 
-        {/* ── 뉴스 & 고시 ── */}
-        <section className="bg-white mt-3 px-4 py-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-base">📣</span>
-              <h2 className="text-sm font-black text-gray-800">{L.newsTitle}</h2>
-              {isLive && (
-                <span className="text-[9px] font-black text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">● LIVE</span>
-              )}
-            </div>
-            <button onClick={refetch} disabled={loading}
-              className="text-[11px] font-bold text-blue-600 hover:underline disabled:opacity-40 tap">
-              {loading ? L.newsLoading : L.newsRefresh}
-            </button>
-          </div>
+        {/* ── 운영자 공지 ── */}
+        <NoticeSection lang={lang} />
 
-          {/* 오류 배너 */}
-          {errMsg && !isLive && (
-            <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3 flex items-center gap-1.5">
-              <span>⚠️</span> {L.newsLiveFail.replace('{err}', errMsg)}
-            </div>
-          )}
+        {/* ── 비자 D-Day 계산기 ── */}
+        <DDaySection lang={lang} />
 
-          {/* 스켈레톤 or 뉴스 목록 */}
-          {loading ? (
-            <div className="divide-y divide-gray-50">
-              {[1,2,3].map(i => <SkeletonRow key={i} />)}
-            </div>
-          ) : (
-            <ul className="divide-y divide-gray-50">
-              {news.map(n => (
-                <li key={n.id} className="py-2.5">
-                  <a href={n.link} target="_blank" rel="noopener noreferrer"
-                    className="flex items-start gap-2.5 hover:bg-gray-50 rounded-lg px-1 -mx-1 transition">
-                    <div className="flex flex-col items-center gap-1 flex-shrink-0 pt-0.5">
-                      <span className="text-[9px] font-black text-white bg-blue-700 rounded px-1.5 py-0.5">{n.badge}</span>
-                      {n.hot && <span className="text-[8px] font-black text-red-500">🔥HOT</span>}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-700 font-medium word-keep leading-snug">{n.title}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{n.date}</p>
-                    </div>
-                    <span className="text-gray-300 flex-shrink-0 text-sm pt-1">→</span>
-                  </a>
-                  {/* 한국어 뉴스에만 구글 번역 링크 */}
-                  {n.lang === 'KO' && (
-                    <a href={`https://translate.google.com/translate?sl=ko&tl=vi&u=${encodeURIComponent(n.link)}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 mt-1 ml-1 text-[10px] font-bold text-blue-500 hover:text-blue-700 hover:underline tap">
-                      {L.translateBtn}
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {/* ── 출입국 사무소 연락처 ── */}
+        <OfficeSection lang={lang} />
 
         {/* ── 자유 토크방 리스트 (talkOpen=true) OR 3대 게시판 피드 (talkOpen=false) ── */}
         <div ref={talkRef} />

@@ -1646,6 +1646,10 @@ function SalesPage({ onBack }) {
             ))}
           </ul>
         </div>
+        <button onClick={onBack}
+          className="mt-6 w-full bg-green-600 text-white font-black py-4 rounded-2xl text-sm tap transition">
+          ← 메인으로 돌아가기
+        </button>
       </div>
     </div>
   );
@@ -1731,6 +1735,10 @@ function ScorePage({ onBack }) {
         <p className="text-[10px] text-center text-gray-400 mt-5 word-keep">
           ⚠️ 참고용 계산기입니다. 실제 심사 결과와 다를 수 있습니다.
         </p>
+        <button onClick={onBack}
+          className="mt-6 w-full bg-amber-500 text-white font-black py-4 rounded-2xl text-sm tap transition">
+          ← 메인으로 돌아가기
+        </button>
       </div>
     </div>
   );
@@ -1874,6 +1882,10 @@ function DocsPage({ onBack }) {
         <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mt-4 fade-in">
           <p className="text-xs text-red-700 word-keep">⚠️ 관할 출입국마다 추가 서류를 요구할 수 있습니다. 방문 전 반드시 전화로 확인하세요.</p>
         </div>
+        <button onClick={onBack}
+          className="mt-6 w-full bg-red-600 text-white font-black py-4 rounded-2xl text-sm tap transition">
+          ← 메인으로 돌아가기
+        </button>
       </div>
     </div>
   );

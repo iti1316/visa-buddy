@@ -1840,15 +1840,18 @@ function VisaTreeSection({ lang, visaType, onChangeType }) {
    페이지: 메인(Home)
 ================================================================ */
 function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onAddComment, onDeleteComment, toggleLang, visaType, onSetVisaType }) {
-  const [talkOpen, setTalkOpen] = useState(false);
-  const talkRef = useRef(null);
+  const [activeBoard, setActiveBoard] = useState(null); // null | 'visa' | 'talk'
+  const boardRef = useRef(null);
   const L = LANG[lang];
 
-  function openTalk() {
-    setTalkOpen(true);
-    setTimeout(() => {
-      talkRef.current?.scrollIntoView({ behavior:'smooth', block:'start' });
-    }, 50);
+  function openBoard(type) {
+    setActiveBoard(prev => {
+      const next = prev === type ? null : type;
+      if (next) {
+        setTimeout(() => boardRef.current?.scrollIntoView({ behavior:'smooth', block:'start' }), 50);
+      }
+      return next;
+    });
   }
 
   /* visaType 없으면 온보딩 선택 화면 */
@@ -1943,56 +1946,67 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
           </div>
         </section>
 
-        {/* ── 🟢 자유 토크방 와이드 버튼 ── */}
+        {/* ── 게시판 2열 그리드 ── */}
         <section className="mt-3 px-3">
-          <button
-            onClick={() => talkOpen ? setTalkOpen(false) : openTalk()}
-            className={`w-full rounded-2xl shadow-md tap transition-all overflow-hidden
-              ${talkOpen
-                ? 'bg-gradient-to-r from-green-600 to-emerald-500 ring-4 ring-green-300'
-                : 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600'}`}>
-            <div className="px-5 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
-                  💬
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-black text-white leading-tight">
-                    {lang === 'vi' ? 'Góc Tán Gẫu' : '🟢 자유 토크방'}
-                  </p>
-                  <p className="text-[10px] text-white/80 mt-0.5">
-                    {L.talkBtnSub}
-                  </p>
-                </div>
+          <div className="grid grid-cols-2 gap-2.5">
+
+            {/* 비자 전문 게시판 버튼 */}
+            <button
+              onClick={() => openBoard('visa')}
+              className={`rounded-2xl shadow-md tap transition-all overflow-hidden text-left
+                ${activeBoard === 'visa'
+                  ? 'bg-gradient-to-br from-blue-700 to-blue-500 ring-4 ring-blue-300'
+                  : 'bg-gradient-to-br from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500'}`}>
+              <div className="px-4 py-4">
+                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-xl mb-2">📋</div>
+                <p className="text-[12px] font-black text-white leading-tight">
+                  {lang==='vi' ? 'Bảng Visa' : '비자 전문 게시판'}
+                </p>
+                <p className="text-[9px] text-white/75 mt-1 leading-tight">
+                  {lang==='vi' ? 'Hỏi đáp · Kinh nghiệm' : '합격후기 · SOS · 참교육'}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
-                {posts.filter(p=>p.cat==='talk').some(p=>p.isNew) && (
-                  <span className="text-[9px] font-black text-green-700 bg-white px-1.5 py-0.5 rounded-full">NEW</span>
-                )}
-                <span className={`text-white text-xl font-black transition-transform duration-300 ${talkOpen ? 'rotate-180' : ''}`}>
-                  ⌄
+              <div className="bg-black/15 px-4 py-1.5 flex items-center justify-between">
+                <span className="text-[9px] text-white/80 font-bold">
+                  {posts.filter(p=>p.cat!=='talk').length}{lang==='vi' ? ' bài' : '개'}
                 </span>
+                <span className={`text-white text-base font-black transition-transform duration-300 ${activeBoard==='visa' ? 'rotate-180' : ''}`}>⌄</span>
               </div>
-            </div>
-            {/* 글 수 미리보기 바 */}
-            <div className="bg-black/15 px-5 py-2 flex items-center gap-3">
-              <span className="text-[10px] text-white/90 font-bold">
-                {lang==='vi' ? '💬 Bài viết' : '💬 게시글'} {posts.filter(p=>p.cat==='talk').length}
-              </span>
-              <span className="text-white/30 text-xs">|</span>
-              <span className="text-[10px] text-white/70">
-                {talkOpen
-                  ? (lang==='vi' ? '▲ Thu gọn' : '▲ 접기')
-                  : (lang==='vi' ? '▼ Xem tất cả bài viết' : '▼ 클릭하면 전체 목록 열림')}
-              </span>
-            </div>
-          </button>
+            </button>
+
+            {/* 자유 토크방 버튼 */}
+            <button
+              onClick={() => openBoard('talk')}
+              className={`rounded-2xl shadow-md tap transition-all overflow-hidden text-left
+                ${activeBoard === 'talk'
+                  ? 'bg-gradient-to-br from-green-600 to-emerald-500 ring-4 ring-green-300'
+                  : 'bg-gradient-to-br from-green-500 to-teal-400 hover:from-green-600 hover:to-teal-500'}`}>
+              <div className="px-4 py-4">
+                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-xl mb-2">💬</div>
+                <p className="text-[12px] font-black text-white leading-tight">
+                  {lang==='vi' ? 'Góc Tán Gẫu' : '자유 토크방'}
+                </p>
+                <p className="text-[9px] text-white/75 mt-1 leading-tight">
+                  {lang==='vi' ? 'Trò chuyện · Đời thường' : '비자 외 일상 · 자유 수다'}
+                </p>
+              </div>
+              <div className="bg-black/15 px-4 py-1.5 flex items-center justify-between">
+                <span className="text-[9px] text-white/80 font-bold">
+                  {posts.filter(p=>p.cat==='talk').length}{lang==='vi' ? ' bài' : '개'}
+                  {posts.filter(p=>p.cat==='talk').some(p=>p.isNew) && (
+                    <span className="ml-1 bg-white text-green-700 font-black px-1 rounded-full text-[8px]">NEW</span>
+                  )}
+                </span>
+                <span className={`text-white text-base font-black transition-transform duration-300 ${activeBoard==='talk' ? 'rotate-180' : ''}`}>⌄</span>
+              </div>
+            </button>
+
+          </div>
         </section>
 
-        {/* ── 자유 토크방 리스트 (talkOpen=true) OR 3대 게시판 피드 (talkOpen=false) ── */}
-        <div ref={talkRef} />
-        {talkOpen ? (
-          /* 자유 토크방 — 네이버 카페 스타일 리스트 */
+        {/* ── 게시판 펼침 영역 ── */}
+        <div ref={boardRef} />
+        {activeBoard === 'talk' && (
           <TalkListView
             posts={posts}
             nav={nav}
@@ -2001,10 +2015,10 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
             onUpdatePost={onUpdatePost}
             onAddComment={onAddComment}
             onDeleteComment={onDeleteComment}
-            onClose={() => setTalkOpen(false)}
+            onClose={() => setActiveBoard(null)}
           />
-        ) : (
-          /* 비자 전문 통합 게시판 */
+        )}
+        {activeBoard === 'visa' && (
           <VisaBoardSection
             posts={posts}
             nav={nav}
@@ -2016,14 +2030,14 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
         )}
       </main>
 
-      {/* FAB — 자유 토크방 열렸을 땐 초록, 닫혔을 땐 파란색 */}
+      {/* FAB */}
       <button
-        onClick={() => talkOpen
-          ? nav({ page:'write', param:'talk' })
-          : nav({ page:'write', param:'hall' })}
+        onClick={() => nav({ page:'write', param: activeBoard === 'talk' ? 'talk' : 'hall' })}
         className={`fixed bottom-6 right-4 text-white font-black text-sm px-5 py-3.5 rounded-full shadow-xl z-40 flex items-center gap-2 tap transition
-          ${talkOpen ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-700 hover:bg-blue-800'}`}>
-        {talkOpen ? (lang==='vi' ? '✏️ Viết' : '✏️ 글쓰기') : L.writeFab}
+          ${activeBoard === 'talk' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-700 hover:bg-blue-800'}`}>
+        {activeBoard === 'talk'
+          ? (lang==='vi' ? '✏️ Viết' : '✏️ 글쓰기')
+          : L.writeFab}
       </button>
     </div>
   );

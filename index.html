@@ -1903,49 +1903,6 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
         {/* ── 비자 여정 시각화 ── */}
         <VisaTreeSection lang={lang} visaType={visaType} onChangeType={() => onSetVisaType(null)} />
 
-        {/* ── 퀵 메뉴 그리드 ── */}
-        <section className="mt-3 bg-white px-4 pt-4 pb-5 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-[11px] font-black text-gray-400 tracking-widest uppercase">{L.quickMenu}</p>
-              {visaType !== 'worker' && (
-                <p className="text-[9px] text-amber-500 font-bold mt-0.5">
-                  {lang==='vi' ? '⚠️ Tài liệu hướng dẫn cho tuyến này đang được chuẩn bị' : '⚠️ 해당 루트 가이드 준비 중'}
-                </p>
-              )}
-            </div>
-            <p className="text-[10px] text-gray-300">{L.quickMenuSub}</p>
-          </div>
-          <div className="grid grid-cols-3 gap-2.5">
-            {gridBtns.map((b, i) => {
-              if (b.soon) {
-                return (
-                  <div key={i} className={`${b.bg} opacity-50 rounded-2xl px-3 py-4 text-left relative select-none`}>
-                    <span className="text-2xl block mb-2">{b.e}</span>
-                    <p className="text-[11px] font-black leading-tight word-keep text-white">{b[lang]}</p>
-                    <span className="absolute top-1.5 right-1.5 text-[8px] bg-black/30 text-white font-bold px-1.5 py-0.5 rounded-full">
-                      {lang==='vi' ? 'Sắp có' : '준비중'}
-                    </span>
-                  </div>
-                );
-              }
-              const commonCls = `${b.bg} text-white rounded-2xl px-3 py-4 text-left shadow-md tap transition-transform`;
-              const inner = (
-                <>
-                  <span className="text-2xl block mb-2">{b.e}</span>
-                  <p className="text-[11px] font-black leading-tight word-keep">{b[lang]}</p>
-                  <p className="text-[9px] opacity-70 mt-1 leading-tight">{lang === 'vi' ? b.ko : b.vi}</p>
-                </>
-              );
-              return (
-                <button key={i} onClick={() => nav(b.act())} className={commonCls}>
-                  {inner}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
         {/* ── 게시판 2열 그리드 ── */}
         <section className="mt-3 px-3">
           <div className="grid grid-cols-2 gap-2.5">
@@ -2028,6 +1985,50 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
             onAddComment={onAddComment}
             onDeleteComment={onDeleteComment} />
         )}
+
+        {/* ── 퀵 메뉴 그리드 ── */}
+        <section className="mt-3 bg-white px-4 pt-4 pb-5 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-[11px] font-black text-gray-400 tracking-widest uppercase">{L.quickMenu}</p>
+              {visaType !== 'worker' && (
+                <p className="text-[9px] text-amber-500 font-bold mt-0.5">
+                  {lang==='vi' ? '⚠️ Tài liệu hướng dẫn cho tuyến này đang được chuẩn bị' : '⚠️ 해당 루트 가이드 준비 중'}
+                </p>
+              )}
+            </div>
+            <p className="text-[10px] text-gray-300">{L.quickMenuSub}</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2.5">
+            {gridBtns.map((b, i) => {
+              if (b.soon) {
+                return (
+                  <div key={i} className={`${b.bg} opacity-50 rounded-2xl px-3 py-4 text-left relative select-none`}>
+                    <span className="text-2xl block mb-2">{b.e}</span>
+                    <p className="text-[11px] font-black leading-tight word-keep text-white">{b[lang]}</p>
+                    <span className="absolute top-1.5 right-1.5 text-[8px] bg-black/30 text-white font-bold px-1.5 py-0.5 rounded-full">
+                      {lang==='vi' ? 'Sắp có' : '준비중'}
+                    </span>
+                  </div>
+                );
+              }
+              const commonCls = `${b.bg} text-white rounded-2xl px-3 py-4 text-left shadow-md tap transition-transform`;
+              const inner = (
+                <>
+                  <span className="text-2xl block mb-2">{b.e}</span>
+                  <p className="text-[11px] font-black leading-tight word-keep">{b[lang]}</p>
+                  <p className="text-[9px] opacity-70 mt-1 leading-tight">{lang === 'vi' ? b.ko : b.vi}</p>
+                </>
+              );
+              return (
+                <button key={i} onClick={() => nav(b.act())} className={commonCls}>
+                  {inner}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
       </main>
 
       {/* FAB */}

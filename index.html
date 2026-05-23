@@ -1673,7 +1673,7 @@ const VISA_TREES = {
 };
 
 /* ── 비자 루트 선택 (온보딩) ── */
-function VisaTypeSelector({ lang, onSelect }) {
+function VisaTypeSelector({ lang, onSelect, posts, openBoard, activeBoard, boardRef }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto" style={{background:'linear-gradient(160deg,#1e3a8a 0%,#1e40af 100%)'}}>
       <div className="flex-1 px-4 pt-12 pb-10 max-w-lg mx-auto w-full">
@@ -1715,6 +1715,69 @@ function VisaTypeSelector({ lang, onSelect }) {
             </div>
           </button>
         ))}
+
+        {/* ── 게시판 바로가기 ── */}
+        <div className="mt-2 mb-4">
+          <p className="text-blue-300 text-[10px] font-bold text-center mb-2">
+            {lang==='vi' ? '💬 Hoặc vào thẳng diễn đàn' : '💬 또는 게시판 바로가기'}
+          </p>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              onClick={() => openBoard('visa')}
+              className={`rounded-xl tap transition-all overflow-hidden text-left border
+                ${activeBoard === 'visa'
+                  ? 'bg-white/25 border-white/60 ring-2 ring-white/40'
+                  : 'bg-white/10 border-white/20 hover:bg-white/18'}`}>
+              <div className="px-3 py-3">
+                <span className="text-xl block mb-1">📋</span>
+                <p className="text-[11px] font-black text-white leading-tight">
+                  {lang==='vi' ? 'Bảng Visa' : '비자 전문 게시판'}
+                </p>
+                <p className="text-[9px] text-blue-200 mt-0.5">
+                  {posts.filter(p=>p.cat!=='talk').length}{lang==='vi' ? ' bài' : '개'}
+                  <span className={`ml-1 inline-block transition-transform ${activeBoard==='visa' ? 'rotate-180' : ''}`}>⌄</span>
+                </p>
+              </div>
+            </button>
+            <button
+              onClick={() => openBoard('talk')}
+              className={`rounded-xl tap transition-all overflow-hidden text-left border
+                ${activeBoard === 'talk'
+                  ? 'bg-white/25 border-white/60 ring-2 ring-white/40'
+                  : 'bg-white/10 border-white/20 hover:bg-white/18'}`}>
+              <div className="px-3 py-3">
+                <span className="text-xl block mb-1">💬</span>
+                <p className="text-[11px] font-black text-white leading-tight">
+                  {lang==='vi' ? 'Góc Tán Gẫu' : '자유 토크방'}
+                </p>
+                <p className="text-[9px] text-blue-200 mt-0.5">
+                  {posts.filter(p=>p.cat==='talk').length}{lang==='vi' ? ' bài' : '개'}
+                  {posts.filter(p=>p.cat==='talk').some(p=>p.isNew) && (
+                    <span className="ml-1 bg-white text-green-700 font-black px-1 rounded-full text-[8px]">NEW</span>
+                  )}
+                  <span className={`ml-1 inline-block transition-transform ${activeBoard==='talk' ? 'rotate-180' : ''}`}>⌄</span>
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* 게시판 펼침 */}
+        <div ref={boardRef} />
+        {activeBoard === 'talk' && (
+          <div className="rounded-2xl overflow-hidden bg-white/5 border border-white/20 mb-4">
+            <p className="text-white/60 text-xs text-center py-6">
+              {lang==='vi' ? 'Vui lòng chọn lộ trình trước để xem bảng tin đầy đủ' : '루트를 먼저 선택하면 게시판을 더 편하게 이용할 수 있어요'}
+            </p>
+          </div>
+        )}
+        {activeBoard === 'visa' && (
+          <div className="rounded-2xl overflow-hidden bg-white/5 border border-white/20 mb-4">
+            <p className="text-white/60 text-xs text-center py-6">
+              {lang==='vi' ? 'Vui lòng chọn lộ trình trước để xem bảng tin đầy đủ' : '루트를 먼저 선택하면 게시판을 더 편하게 이용할 수 있어요'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1900,7 +1963,7 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
 
   /* visaType 없으면 온보딩 선택 화면 */
   if (!visaType) {
-    return <VisaTypeSelector lang={lang} onSelect={onSetVisaType} />;
+    return <VisaTypeSelector lang={lang} onSelect={onSetVisaType} posts={posts} openBoard={openBoard} activeBoard={activeBoard} boardRef={boardRef} />;
   }
 
   const gridBtns = GRID_BTNS_MAP[visaType] || GRID_BTNS_MAP.worker;

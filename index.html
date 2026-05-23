@@ -1944,72 +1944,108 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
 ================================================================ */
 const GUIDE_DATA = {
   d9: {
-    title: '📘 D-9 비자 연장 가이드',
-    sub: 'Hướng dẫn gia hạn D-9',
+    title: { ko:'📘 D-9 비자 연장 가이드',    vi:'📘 Hướng dẫn gia hạn visa D-9' },
+    sub:   { ko:'D-9 체류자격 연장 안내',      vi:'Hướng dẫn gia hạn tư cách lưu trú D-9' },
     color: 'bg-blue-700',
     sections: [
-      { icon:'✅', title:'연장 가능 기간',
-        items:['최초 발급: 6개월','1차 연장: 1년 단위','총 체류 최대 2년 (이후 취업비자 변경 필요)'] },
-      { icon:'📋', title:'연장 신청 자격',
-        items:['현재 D-9 비자 소지자','취업 활동 실적 증명 (면접 확인서, 기업 방문 확인서 등)','생계 유지 능력 (잔액증명서 등)','학위증 또는 경력증명서'] },
-      { icon:'📌', title:'신청 절차 (5단계)',
-        steps:[
-          { n:'1', t:'하이코리아 방문 예약', d:'만료 4개월 전부터 신청 가능' },
-          { n:'2', t:'서류 준비',           d:'통합신청서, 여권, 외국인등록증, 취업 활동 실적' },
-          { n:'3', t:'관할 출입국 방문 접수', d:'예약 시간 10분 전 도착 권장' },
-          { n:'4', t:'심사',               d:'약 1~2주 소요' },
-          { n:'5', t:'결과 수령',           d:'하이코리아 "나의 민원"에서 조회' },
+      { icon:'✅',
+        title: { ko:'연장 가능 기간', vi:'Thời gian có thể gia hạn' },
+        items: [
+          { ko:'최초 발급: 6개월',                          vi:'Cấp lần đầu: 6 tháng' },
+          { ko:'1차 연장: 1년 단위',                        vi:'Gia hạn lần 1: theo đơn vị 1 năm' },
+          { ko:'총 체류 최대 2년 (이후 취업비자 변경 필요)',   vi:'Tổng lưu trú tối đa 2 năm (sau đó cần chuyển sang visa lao động)' },
         ] },
-      { icon:'⚠️', title:'주의사항', warn:true,
-        items:['만료 4개월 전부터 신청 가능 (그 이전엔 접수 불가)','D-9으로 최대 2년 이내 취업비자(E-7-4 등)로 변경 필수','기간 초과 → 불법체류 → 5년 재입국 금지','접수증 발급 받으면 심사 중에도 합법 체류 가능'] },
+      { icon:'📋',
+        title: { ko:'연장 신청 자격', vi:'Điều kiện xin gia hạn' },
+        items: [
+          { ko:'현재 D-9 비자 소지자',                            vi:'Đang sở hữu visa D-9' },
+          { ko:'취업 활동 실적 증명 (면접 확인서, 기업 방문 확인서 등)', vi:'Chứng minh hoạt động tìm việc (xác nhận phỏng vấn, thăm doanh nghiệp...)' },
+          { ko:'생계 유지 능력 (잔액증명서 등)',                    vi:'Khả năng duy trì sinh kế (sổ tiết kiệm...)' },
+          { ko:'학위증 또는 경력증명서',                           vi:'Bằng cấp hoặc giấy xác nhận kinh nghiệm' },
+        ] },
+      { icon:'📌',
+        title: { ko:'신청 절차 (5단계)', vi:'Quy trình nộp đơn (5 bước)' },
+        steps: [
+          { n:'1', ko_t:'하이코리아 방문 예약',     vi_t:'Đặt lịch Hi-Korea',               ko_d:'만료 4개월 전부터 신청 가능',                   vi_d:'Có thể nộp từ 4 tháng trước khi hết hạn' },
+          { n:'2', ko_t:'서류 준비',                vi_t:'Chuẩn bị hồ sơ',                  ko_d:'통합신청서, 여권, 외국인등록증, 취업 활동 실적',   vi_d:'Đơn tổng hợp, hộ chiếu, thẻ ngoại kiều, hồ sơ tìm việc' },
+          { n:'3', ko_t:'관할 출입국 방문 접수',    vi_t:'Nộp hồ sơ tại Cục XNC',           ko_d:'예약 시간 10분 전 도착 권장',                  vi_d:'Nên đến trước giờ hẹn 10 phút' },
+          { n:'4', ko_t:'심사',                    vi_t:'Thẩm định hồ sơ',                  ko_d:'약 1~2주 소요',                               vi_d:'Khoảng 1~2 tuần' },
+          { n:'5', ko_t:'결과 수령',               vi_t:'Nhận kết quả',                     ko_d:'하이코리아 "나의 민원"에서 조회',               vi_d:'Tra cứu tại mục "Thủ tục của tôi" trên Hi-Korea' },
+        ] },
+      { icon:'⚠️',
+        title: { ko:'주의사항', vi:'Lưu ý quan trọng' },
+        warn: true,
+        items: [
+          { ko:'만료 4개월 전부터 신청 가능 (그 이전엔 접수 불가)',        vi:'Chỉ được nộp trong vòng 4 tháng trước khi hết hạn (trước đó không tiếp nhận)' },
+          { ko:'D-9으로 최대 2년 이내 취업비자(E-7-4 등)로 변경 필수',     vi:'Phải chuyển sang visa lao động (E-7-4...) trong vòng 2 năm khi có D-9' },
+          { ko:'기간 초과 → 불법체류 → 5년 재입국 금지',                  vi:'Quá hạn → Cư trú bất hợp pháp → Cấm nhập cảnh 5 năm' },
+          { ko:'접수증 발급 받으면 심사 중에도 합법 체류 가능',             vi:'Sau khi nhận phiếu tiếp nhận, được cư trú hợp pháp trong thời gian chờ kết quả' },
+        ] },
     ]
   },
   e74: {
-    title: '📙 E-7-4 비자 변경 조건',
-    sub: 'Điều kiện chuyển E-7-4',
+    title: { ko:'📙 E-7-4 비자 변경 조건',    vi:'📙 Điều kiện chuyển đổi visa E-7-4' },
+    sub:   { ko:'E-7-4 체류자격 변경 안내',    vi:'Hướng dẫn chuyển đổi tư cách lưu trú E-7-4' },
     color: 'bg-orange-600',
     sections: [
-      { icon:'✅', title:'기본 자격 요건',
-        items:['동일 사업장 계속 근무 4년 이상','점수제 합계 200점 이상 (최대 300점)','현재 합법적 체류 중 (D-9, E-9 등)','결격 사유 없음 (형사처벌·불법취업 이력 등)'] },
-      { icon:'📊', title:'점수제 항목 (최대 300점)',
-        table:[
-          ['항목','최대 점수','비고'],
-          ['연령','18점','25~34세 만점'],
-          ['한국어 능력','30점','토픽 5~6급 or 사통 5단계'],
-          ['학력','22점','국내 석사 이상'],
-          ['소득 수준','40점','최저임금 2.5배 이상'],
-          ['자격증 가산','10점','국가기술자격증'],
-          ['추천서 가산','30점','고용주 추천서'],
-          ['장기근속 가산','+20점','6년 이상 (+10점은 4년 기본)'],
+      { icon:'✅',
+        title: { ko:'기본 자격 요건', vi:'Điều kiện cơ bản' },
+        items: [
+          { ko:'동일 사업장 계속 근무 4년 이상',                vi:'Làm việc liên tục tại cùng nơi làm việc từ 4 năm trở lên' },
+          { ko:'점수제 합계 200점 이상 (최대 300점)',           vi:'Tổng điểm từ 200 điểm trở lên (tối đa 300 điểm)' },
+          { ko:'현재 합법적 체류 중 (D-9, E-9 등)',            vi:'Đang cư trú hợp pháp (D-9, E-9...)' },
+          { ko:'결격 사유 없음 (형사처벌·불법취업 이력 등)',     vi:'Không có lý do từ chối (tiền án, lao động bất hợp pháp...)' },
         ] },
-      { icon:'📌', title:'신청 절차',
-        steps:[
-          { n:'1', t:'점수 계산 확인', d:'본 앱 "E-7-4 점수 체크" 활용' },
-          { n:'2', t:'서류 준비',      d:'통합신청서, 임금대장, 재직확인서, 추천서 등' },
-          { n:'3', t:'하이코리아 예약', d:'만료 2개월 전 신청 권장' },
-          { n:'4', t:'방문 접수',      d:'수수료 60,000원 (현금/카드)' },
-          { n:'5', t:'결과 수령',      d:'처리 기간 2~4주' },
+      { icon:'📊',
+        title: { ko:'점수제 항목 (최대 300점)', vi:'Các mục tính điểm (tối đa 300 điểm)' },
+        table: [
+          ['항목 / Mục','최대 점수','비고 / Ghi chú'],
+          ['연령 / Độ tuổi','18점','25~34세 / 25~34 tuổi'],
+          ['한국어 / Tiếng Hàn','30점','TOPIK 5~6급 / Cấp 5~6'],
+          ['학력 / Học vấn','22점','국내 석사 / Thạc sĩ trong nước'],
+          ['소득 / Thu nhập','40점','최저임금 2.5배 / 2.5× lương tối thiểu'],
+          ['자격증 / Chứng chỉ','10점','국가기술자격증 / Chứng chỉ kỹ thuật QG'],
+          ['추천서 / Thư giới thiệu','30점','고용주 추천서 / Thư của chủ sử dụng LĐ'],
+          ['장기근속 / Thâm niên','+20점','6년 이상 (+10점은 4년 기본)'],
         ] },
-      { icon:'💡', title:'합격 핵심 팁', tip:true,
-        items:['임금대장은 반드시 실수령액(세후) 기준 — 세전 기준은 거절 사유','고용주 추천서 30점이 합격/불합격 가른다','토픽 3급(18점) 이상 강력 권장 — 2급은 10점','신청 전 관할 출입국에 전화로 추가 서류 확인'] },
+      { icon:'📌',
+        title: { ko:'신청 절차', vi:'Quy trình nộp đơn' },
+        steps: [
+          { n:'1', ko_t:'점수 계산 확인',   vi_t:'Kiểm tra điểm số',             ko_d:'본 앱 "E-7-4 점수 체크" 활용',            vi_d:'Dùng mục "Kiểm tra điểm E-7-4" trong ứng dụng' },
+          { n:'2', ko_t:'서류 준비',         vi_t:'Chuẩn bị hồ sơ',              ko_d:'통합신청서, 임금대장, 재직확인서, 추천서 등',  vi_d:'Đơn tổng hợp, bảng lương, xác nhận làm việc, thư giới thiệu...' },
+          { n:'3', ko_t:'하이코리아 예약',   vi_t:'Đặt lịch Hi-Korea',           ko_d:'만료 2개월 전 신청 권장',                 vi_d:'Nên nộp trước 2 tháng khi hết hạn' },
+          { n:'4', ko_t:'방문 접수',         vi_t:'Nộp hồ sơ trực tiếp',         ko_d:'수수료 60,000원 (현금/카드)',              vi_d:'Lệ phí 60.000 won (tiền mặt / thẻ)' },
+          { n:'5', ko_t:'결과 수령',         vi_t:'Nhận kết quả',                ko_d:'처리 기간 2~4주',                        vi_d:'Thời gian xử lý 2~4 tuần' },
+        ] },
+      { icon:'💡',
+        title: { ko:'합격 핵심 팁', vi:'Bí quyết để đậu hồ sơ' },
+        tip: true,
+        items: [
+          { ko:'임금대장은 반드시 실수령액(세후) 기준 — 세전 기준은 거절 사유',  vi:'Bảng lương PHẢI theo lương thực nhận (sau thuế) — lương trước thuế sẽ bị từ chối' },
+          { ko:'고용주 추천서 30점이 합격/불합격 가른다',                        vi:'Thư giới thiệu của chủ (30 điểm) quyết định đậu hay rớt' },
+          { ko:'토픽 3급(18점) 이상 강력 권장 — 2급은 10점',                    vi:'Rất khuyến khích TOPIK cấp 3 (18 điểm) trở lên — Cấp 2 chỉ 10 điểm' },
+          { ko:'신청 전 관할 출입국에 전화로 추가 서류 확인',                    vi:'Gọi điện Cục XNC phụ trách trước khi nộp để xác nhận hồ sơ bổ sung' },
+        ] },
     ]
   }
 };
 
-function GuidePage({ type, onBack }) {
+function GuidePage({ type, onBack, lang }) {
   const d = GUIDE_DATA[type];
   if (!d) return null;
+  const L = lang || 'ko';
+  const T = (obj) => (obj && typeof obj === 'object') ? (obj[L] || obj.ko) : obj;
   return (
     <div style={{ background:'#F0F2F5' }} className="min-h-screen">
-      <BackHeader title={d.title} onBack={onBack} />
+      <BackHeader title={T(d.title)} onBack={onBack} />
       <div className="max-w-lg mx-auto px-4 py-4 pb-12">
-        <p className="text-xs text-gray-400 mb-4">{d.sub}</p>
+        <p className="text-xs text-gray-400 mb-4">{T(d.sub)}</p>
         <div className="flex flex-col gap-4">
           {d.sections.map((s, i) => (
             <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden fade-in">
               <div className={`px-4 py-3 border-b border-gray-50 ${s.warn?'bg-red-50':s.tip?'bg-amber-50':''}`}>
                 <p className={`text-sm font-black flex items-center gap-2 ${s.warn?'text-red-700':s.tip?'text-amber-700':'text-gray-800'}`}>
-                  <span>{s.icon}</span>{s.title}
+                  <span>{s.icon}</span>{T(s.title)}
                 </p>
               </div>
               <div className="px-4 py-3.5">
@@ -2017,7 +2053,7 @@ function GuidePage({ type, onBack }) {
                   <ul className="flex flex-col gap-2">
                     {s.items.map((item, j) => (
                       <li key={j} className={`flex items-start gap-2 text-xs word-keep ${s.warn?'text-red-600':s.tip?'text-amber-700':'text-gray-600'}`}>
-                        <span className="flex-shrink-0">{s.warn?'⚠️':s.tip?'→':'•'}</span>{item}
+                        <span className="flex-shrink-0">{s.warn?'⚠️':s.tip?'→':'•'}</span>{T(item)}
                       </li>
                     ))}
                   </ul>
@@ -2028,8 +2064,8 @@ function GuidePage({ type, onBack }) {
                       <li key={j} className="flex items-start gap-3">
                         <span className={`w-6 h-6 rounded-full ${d.color} text-white text-xs font-black flex items-center justify-center flex-shrink-0`}>{st.n}</span>
                         <div className="pt-0.5">
-                          <p className="text-xs font-black text-gray-800">{st.t}</p>
-                          <p className="text-[11px] text-gray-500 mt-0.5 word-keep">{st.d}</p>
+                          <p className="text-xs font-black text-gray-800">{L==='vi' ? st.vi_t : st.ko_t}</p>
+                          <p className="text-[11px] text-gray-500 mt-0.5 word-keep">{L==='vi' ? st.vi_d : st.ko_d}</p>
                         </div>
                       </li>
                     ))}
@@ -2060,7 +2096,7 @@ function GuidePage({ type, onBack }) {
           ))}
         </div>
         <button onClick={onBack} className={`mt-6 w-full ${d.color} text-white font-black py-4 rounded-2xl text-sm tap transition`}>
-          ← 메인으로 돌아가기
+          {L==='vi' ? '← Về trang chính' : '← 메인으로 돌아가기'}
         </button>
       </div>
     </div>
@@ -2071,18 +2107,18 @@ function GuidePage({ type, onBack }) {
    페이지: 매출/실적 증빙 체크리스트
 ================================================================ */
 const SALES_ITEMS = [
-  { id:'a', label:'임금대장 (최근 1년, 세후 실수령액 기준)', req:true },
-  { id:'b', label:'재직확인서 (고용주 발급, 서명·도장 필수)', req:true },
-  { id:'c', label:'사업자등록증 사본', req:true },
-  { id:'d', label:'부가가치세 과세표준증명원 (홈택스 발급)', req:true },
-  { id:'e', label:'소득세 납부확인서 (원천징수확인서)', req:true },
-  { id:'f', label:'표준재무제표증명 (2년치)', req:true },
-  { id:'g', label:'4대보험 가입자명부', req:false },
-  { id:'h', label:'고용보험 납부확인서', req:false },
-  { id:'i', label:'건강보험 납부확인서', req:false },
+  { id:'a', ko:'임금대장 (최근 1년, 세후 실수령액 기준)',       vi:'Bảng lương (1 năm gần nhất, theo lương thực nhận sau thuế)', req:true },
+  { id:'b', ko:'재직확인서 (고용주 발급, 서명·도장 필수)',       vi:'Xác nhận làm việc (do chủ cấp, cần chữ ký & con dấu)',      req:true },
+  { id:'c', ko:'사업자등록증 사본',                            vi:'Bản sao giấy đăng ký kinh doanh',                           req:true },
+  { id:'d', ko:'부가가치세 과세표준증명원 (홈택스 발급)',        vi:'Chứng minh tiêu chuẩn thuế VAT (cấp từ Hometax)',          req:true },
+  { id:'e', ko:'소득세 납부확인서 (원천징수확인서)',             vi:'Xác nhận nộp thuế thu nhập (giấy khấu trừ tại nguồn)',     req:true },
+  { id:'f', ko:'표준재무제표증명 (2년치)',                      vi:'Chứng minh bảng cân đối tài chính chuẩn (2 năm)',          req:true },
+  { id:'g', ko:'4대보험 가입자명부',                           vi:'Danh sách tham gia 4 bảo hiểm xã hội',                     req:false },
+  { id:'h', ko:'고용보험 납부확인서',                          vi:'Xác nhận nộp bảo hiểm thất nghiệp',                        req:false },
+  { id:'i', ko:'건강보험 납부확인서',                          vi:'Xác nhận nộp bảo hiểm sức khỏe',                           req:false },
 ];
 
-function SalesPage({ onBack }) {
+function SalesPage({ onBack, lang }) {
   const [chk, setChk] = useState({});
   const req  = SALES_ITEMS.filter(x=>x.req).length;
   const done = SALES_ITEMS.filter(x=>x.req&&chk[x.id]).length;
@@ -2090,25 +2126,35 @@ function SalesPage({ onBack }) {
 
   return (
     <div style={{ background:'#F0F2F5' }} className="min-h-screen">
-      <BackHeader title="💰 매출/실적 증빙 팁 & 서류" onBack={onBack} />
+      <BackHeader title={lang==='vi' ? '💰 Tip chứng minh doanh thu & Hồ sơ' : '💰 매출/실적 증빙 팁 & 서류'} onBack={onBack} />
       <div className="max-w-lg mx-auto px-4 py-4 pb-12">
 
         {/* 진행률 */}
         <div className="bg-white rounded-2xl shadow-sm px-4 py-4 mb-4 fade-in">
           <div className="flex items-end justify-between mb-2">
-            <p className="text-xs font-bold text-gray-500">필수 서류 준비율</p>
+            <p className="text-xs font-bold text-gray-500">{lang==='vi' ? 'Tỷ lệ chuẩn bị hồ sơ bắt buộc' : '필수 서류 준비율'}</p>
             <p className="text-2xl font-black text-blue-700">{done}<span className="text-sm text-gray-400">/{req}</span></p>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2.5">
             <div className={`h-2.5 rounded-full transition-all duration-700 ${pct===100?'bg-green-500':'bg-blue-700'}`} style={{width:`${pct}%`}}></div>
           </div>
-          {pct===100 && <p className="text-xs text-green-600 font-bold mt-2 fade-in">✅ 필수 서류 준비 완료! 출입국 예약을 진행하세요.</p>}
+          {pct===100 && <p className="text-xs text-green-600 font-bold mt-2 fade-in">{lang==='vi' ? '✅ Đã chuẩn bị xong hồ sơ! Hãy đặt lịch Cục XNC.' : '✅ 필수 서류 준비 완료! 출입국 예약을 진행하세요.'}</p>}
         </div>
 
         {/* 핵심 팁 */}
         <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4 fade-in">
-          <p className="text-xs font-black text-amber-700 mb-2">💡 임금대장 핵심 팁</p>
-          {['반드시 실수령액(세후) 기준으로 작성 — 세전 기준은 탈락 사유','월별 지급 내역 명확하게 (고용주 서명·도장 필수)','최근 12개월치 전체 제출 권장','두 버전(세전/세후) 모두 준비해두면 안전'].map((t,i)=>(
+          <p className="text-xs font-black text-amber-700 mb-2">💡 {lang==='vi' ? 'Bí quyết về bảng lương' : '임금대장 핵심 팁'}</p>
+          {(lang==='vi' ? [
+            'Bảng lương PHẢI ghi theo lương thực nhận (sau thuế) — lương trước thuế sẽ bị từ chối',
+            'Ghi rõ chi tiết thanh toán theo tháng (cần chữ ký & con dấu của chủ)',
+            'Nên nộp đủ 12 tháng gần nhất',
+            'Chuẩn bị cả 2 phiên bản (trước và sau thuế) để an toàn',
+          ] : [
+            '반드시 실수령액(세후) 기준으로 작성 — 세전 기준은 탈락 사유',
+            '월별 지급 내역 명확하게 (고용주 서명·도장 필수)',
+            '최근 12개월치 전체 제출 권장',
+            '두 버전(세전/세후) 모두 준비해두면 안전',
+          ]).map((t,i)=>(
             <p key={i} className="text-xs text-amber-700 flex items-start gap-1.5 mt-1"><span className="flex-shrink-0">→</span>{t}</p>
           ))}
         </div>
@@ -2116,8 +2162,8 @@ function SalesPage({ onBack }) {
         {/* 체크리스트 */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden fade-in">
           <div className="px-4 py-3 border-b border-gray-50">
-            <p className="text-sm font-black text-gray-800">서류 체크리스트</p>
-            <p className="text-xs text-gray-400 mt-0.5">체크하면서 준비 상황을 관리하세요</p>
+            <p className="text-sm font-black text-gray-800">{lang==='vi' ? 'Danh sách hồ sơ' : '서류 체크리스트'}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{lang==='vi' ? 'Tick vào ô để quản lý tiến độ chuẩn bị' : '체크하면서 준비 상황을 관리하세요'}</p>
           </div>
           <ul className="divide-y divide-gray-50">
             {SALES_ITEMS.map(doc => (
@@ -2126,8 +2172,8 @@ function SalesPage({ onBack }) {
                   <input type="checkbox" checked={!!chk[doc.id]}
                     onChange={e => setChk(p=>({...p,[doc.id]:e.target.checked}))}
                     className="w-5 h-5 rounded accent-blue-700 flex-shrink-0" />
-                  <span className={`text-xs word-keep flex-1 ${chk[doc.id]?'text-green-700 line-through':'text-gray-700'}`}>{doc.label}</span>
-                  {doc.req && !chk[doc.id] && <span className="text-[9px] font-black text-red-500 flex-shrink-0">필수</span>}
+                  <span className={`text-xs word-keep flex-1 ${chk[doc.id]?'text-green-700 line-through':'text-gray-700'}`}>{lang==='vi' ? doc.vi : doc.ko}</span>
+                  {doc.req && !chk[doc.id] && <span className="text-[9px] font-black text-red-500 flex-shrink-0">{lang==='vi'?'bắt buộc':'필수'}</span>}
                   {chk[doc.id] && <span className="text-green-500 flex-shrink-0 text-sm">✓</span>}
                 </label>
               </li>
@@ -2136,7 +2182,7 @@ function SalesPage({ onBack }) {
         </div>
         <button onClick={onBack}
           className="mt-6 w-full bg-green-600 text-white font-black py-4 rounded-2xl text-sm tap transition">
-          ← 메인으로 돌아가기
+          {lang==='vi' ? '← Về trang chính' : '← 메인으로 돌아가기'}
         </button>
       </div>
     </div>
@@ -2146,7 +2192,7 @@ function SalesPage({ onBack }) {
 /* ================================================================
    페이지: E-7-4 점수 계산기
 ================================================================ */
-function ScorePage({ onBack }) {
+function ScorePage({ onBack, lang }) {
   const [age,setAge]     = useState('0');
   const [kor,setKor]     = useState('0');
   const [edu,setEdu]     = useState('0');
@@ -2164,15 +2210,16 @@ function ScorePage({ onBack }) {
 
   return (
     <div style={{ background:'#F0F2F5' }} className="min-h-screen">
-      <BackHeader title="📊 E-7-4 점수 체크" onBack={onBack} />
+      <BackHeader title={lang==='vi' ? '📊 Kiểm tra điểm E-7-4' : '📊 E-7-4 점수 체크'} onBack={onBack} />
       <div className="max-w-lg mx-auto px-4 py-4 pb-12">
 
         {/* ⚠️ 참고용 경고 배너 */}
         <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl px-4 py-3 mb-4 fade-in">
-          <p className="text-sm font-black text-amber-800 mb-1">⚠️ 이 계산기는 참고용입니다</p>
+          <p className="text-sm font-black text-amber-800 mb-1">{lang==='vi' ? '⚠️ Công cụ này chỉ để tham khảo' : '⚠️ 이 계산기는 참고용입니다'}</p>
           <p className="text-xs text-amber-700 leading-relaxed word-keep">
-            항목 누락·기준 변경 가능성이 있어 <strong>실제 심사 결과와 다를 수 있습니다.</strong><br/>
-            정확한 점수는 반드시 <strong>출입국 사무소 또는 법무부 공식 기준</strong>으로 확인하세요.
+            {lang==='vi'
+              ? <><strong>Kết quả thực tế có thể khác.</strong><br/>Hãy xác nhận điểm chính xác tại <strong>Cục XNC hoặc theo tiêu chuẩn chính thức của Bộ Tư pháp.</strong></>
+              : <>항목 누락·기준 변경 가능성이 있어 <strong>실제 심사 결과와 다를 수 있습니다.</strong><br/>정확한 점수는 반드시 <strong>출입국 사무소 또는 법무부 공식 기준</strong>으로 확인하세요.</>}
           </p>
         </div>
 
@@ -2180,29 +2227,34 @@ function ScorePage({ onBack }) {
         <div className={`rounded-2xl shadow-sm overflow-hidden mb-4 border-2 fade-in ${pass?'bg-green-50 border-green-200':'bg-white border-gray-100'}`}>
           <div className="px-4 py-4">
             <div className="flex items-end justify-between mb-3">
-              <p className="text-xs font-bold text-gray-500">나의 예상 점수</p>
-              <p className={`text-4xl font-black ${pass?'text-green-600':'text-blue-700'}`}>{total}<span className="text-lg">점</span></p>
+              <p className="text-xs font-bold text-gray-500">{lang==='vi' ? 'Điểm ước tính của tôi' : '나의 예상 점수'}</p>
+              <p className={`text-4xl font-black ${pass?'text-green-600':'text-blue-700'}`}>{total}<span className="text-lg">{lang==='vi'?'đ':'점'}</span></p>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3 mb-1">
               <div className={`h-3 rounded-full transition-all duration-700 ${pass?'bg-green-500':'bg-blue-700'}`} style={{width:`${pct}%`}}></div>
             </div>
             <div className="flex justify-between text-[10px] text-gray-400 mb-3">
-              <span>0점</span><span className="font-bold text-blue-700">합격선 200점 ✓</span>
+              <span>0</span><span className="font-bold text-blue-700">{lang==='vi' ? 'Ngưỡng đậu 200đ ✓' : '합격선 200점 ✓'}</span>
             </div>
             {pass
-              ? <p className="text-sm font-black text-green-600">🎉 합격 가능! 지금 서류를 준비하세요.</p>
-              : <p className="text-sm font-black text-red-500">❌ {200-total}점 더 필요합니다. 아래 항목을 개선해보세요!</p>}
+              ? <p className="text-sm font-black text-green-600">{lang==='vi' ? '🎉 Có thể đậu! Hãy chuẩn bị hồ sơ ngay.' : '🎉 합격 가능! 지금 서류를 준비하세요.'}</p>
+              : <p className="text-sm font-black text-red-500">{lang==='vi' ? `❌ Cần thêm ${200-total} điểm. Hãy cải thiện các mục bên dưới!` : `❌ ${200-total}점 더 필요합니다. 아래 항목을 개선해보세요!`}</p>}
           </div>
         </div>
 
         {/* 입력 항목 */}
         <div className="flex flex-col gap-3">
-          {[
+          {(lang==='vi' ? [
+            ['① Độ tuổi', age, setAge, [['0','Chọn'],['16','18~24 tuổi (16đ)'],['18','25~29 tuổi (18đ)'],['17','30~34 tuổi (17đ)'],['14','35~39 tuổi (14đ)'],['10','40~44 tuổi (10đ)'],['6','45~49 tuổi (6đ)'],['2','Từ 50 tuổi (2đ)']]],
+            ['② Tiếng Hàn', kor, setKor, [['0','Chọn'],['0','TOPIK cấp 1 (0đ)'],['10','TOPIK cấp 2 (10đ)'],['18','TOPIK cấp 3 (18đ)'],['24','TOPIK cấp 4 (24đ)'],['30','TOPIK cấp 5~6 (30đ)'],['30','KIP giai đoạn 5 (30đ)']]],
+            ['③ Học vấn', edu, setEdu, [['0','Chọn / Không có (0đ)'],['10','Cao đẳng trong nước (10đ)'],['18','Đại học trong nước (18đ)'],['22','Thạc sĩ+ trong nước (22đ)'],['10','Đại học nước ngoài (10đ)'],['14','Thạc sĩ+ nước ngoài (14đ)']]],
+            ['④ Thu nhập (lương thực nhận/tháng)', inc, setInc, [['0','Chọn'],['0','Dưới 1x lương tối thiểu (0đ)'],['10','1x~1.5x (10đ)'],['20','1.5x~2x (20đ)'],['30','2x~2.5x (30đ)'],['40','Từ 2.5x trở lên (40đ)']]],
+          ] : [
             ['① 연령', age, setAge, [['0','선택하세요'],['16','18~24세 (16점)'],['18','25~29세 (18점)'],['17','30~34세 (17점)'],['14','35~39세 (14점)'],['10','40~44세 (10점)'],['6','45~49세 (6점)'],['2','50세 이상 (2점)']]],
             ['② 한국어 능력', kor, setKor, [['0','선택하세요'],['0','토픽 1급 (0점)'],['10','토픽 2급 (10점)'],['18','토픽 3급 (18점)'],['24','토픽 4급 (24점)'],['30','토픽 5~6급 (30점)'],['30','사회통합프로그램 5단계 (30점)']]],
             ['③ 학력', edu, setEdu, [['0','선택하세요 / 해당없음 (0점)'],['10','국내 전문학사 (10점)'],['18','국내 학사 (18점)'],['22','국내 석사 이상 (22점)'],['10','해외 학사 (10점)'],['14','해외 석사 이상 (14점)']]],
             ['④ 소득 (월 실수령액 기준)', inc, setInc, [['0','선택하세요'],['0','최저임금 1배 미만 (0점)'],['10','1배 이상 1.5배 미만 (10점)'],['20','1.5배 이상 2배 미만 (20점)'],['30','2배 이상 2.5배 미만 (30점)'],['40','2.5배 이상 (40점)']]],
-          ].map(([label, val, setter, opts]) => (
+          ]).map(([label, val, setter, opts]) => (
             <div key={label} className="bg-white rounded-2xl shadow-sm px-4 py-3 fade-in">
               <label className="block text-xs font-black text-gray-600 mb-2">{label}</label>
               <select value={val} onChange={e=>setter(e.target.value)} className={SEL}>
@@ -2213,28 +2265,32 @@ function ScorePage({ onBack }) {
 
           {/* 가산점 체크박스 */}
           <div className="bg-white rounded-2xl shadow-sm px-4 py-3 fade-in">
-            <p className="text-xs font-black text-gray-600 mb-1">⑤ 가산점 (중복 선택 가능)</p>
-            <p className="text-[10px] text-gray-400 mb-3">※ 동일 사업장 4년 이상 기본 10점 자동 포함</p>
-            {[
+            <p className="text-xs font-black text-gray-600 mb-1">{lang==='vi' ? '⑤ Điểm cộng thêm (có thể chọn nhiều)' : '⑤ 가산점 (중복 선택 가능)'}</p>
+            <p className="text-[10px] text-gray-400 mb-3">{lang==='vi' ? '※ 10 điểm cơ bản (làm cùng chỗ 4 năm+) đã được tính tự động' : '※ 동일 사업장 4년 이상 기본 10점 자동 포함'}</p>
+            {(lang==='vi' ? [
+              ['Có chứng chỉ kỹ thuật quốc gia',cert,setCert,10],
+              ['Có thư giới thiệu của chủ sử dụng lao động',rec,setRec,30],
+              ['Làm cùng nơi từ 6 năm trở lên (+10đ bổ sung)',long6,setLong6,10],
+            ] : [
               ['국가기술자격증 보유',cert,setCert,10],
               ['고용주 추천서 첨부',rec,setRec,30],
               ['동일 사업장 6년 이상 근무 (+10점 추가)',long6,setLong6,10],
-            ].map(([label,val,setter,pts])=>(
+            ]).map(([label,val,setter,pts])=>(
               <label key={label} className="flex items-center gap-3 cursor-pointer py-2.5 border-b border-gray-50 last:border-0">
                 <input type="checkbox" checked={val} onChange={e=>setter(e.target.checked)} className="w-5 h-5 rounded accent-blue-700 flex-shrink-0"/>
                 <span className="flex-1 text-sm text-gray-700 word-keep">{label}</span>
-                <span className="text-sm font-black text-blue-700">+{pts}점</span>
+                <span className="text-sm font-black text-blue-700">+{pts}{lang==='vi'?'đ':'점'}</span>
               </label>
             ))}
           </div>
         </div>
 
         <p className="text-[10px] text-center text-gray-400 mt-5 word-keep">
-          ⚠️ 참고용 계산기입니다. 실제 심사 결과와 다를 수 있습니다.
+          {lang==='vi' ? '⚠️ Chỉ để tham khảo. Kết quả thực tế có thể khác.' : '⚠️ 참고용 계산기입니다. 실제 심사 결과와 다를 수 있습니다.'}
         </p>
         <button onClick={onBack}
           className="mt-6 w-full bg-amber-500 text-white font-black py-4 rounded-2xl text-sm tap transition">
-          ← 메인으로 돌아가기
+          {lang==='vi' ? '← Về trang chính' : '← 메인으로 돌아가기'}
         </button>
       </div>
     </div>
@@ -2248,92 +2304,94 @@ function ScorePage({ onBack }) {
 ================================================================ */
 const DOCS = [
   {
-    icon:'📄', name:'통합신청서 (체류자격 변경·연장)', badge:'법무부 공식',
-    desc:'E-7-4 변경·D-9 연장 공통 양식 (HWP/PDF)',
-    fileName:'통합신청서_E74_변경.hwp',
-    driveId:'1PLACEHOLDER_DRIVE_ID_통합신청서_replace_me',
+    icon:'📄', name:'통합신청서 (체류자격 변경·연장)', vi_name:'Đơn tổng hợp (thay đổi·gia hạn tư cách lưu trú)',
+    badge:'법무부 공식', desc:'E-7-4 변경·D-9 연장 공통 양식 (HWP/PDF)',
+    vi_desc:'Biểu mẫu chung cho E-7-4 và gia hạn D-9 (HWP/PDF)',
+    fileName:'통합신청서_E74_변경.hwp', driveId:'1PLACEHOLDER_DRIVE_ID_통합신청서_replace_me',
     official:'https://www.hikorea.go.kr/pt/InfoDetailR_kor.pt?catSeq=2&cmsSeq=189',
   },
   {
-    icon:'📝', name:'고용사유서 양식', badge:'법무부 공식',
-    desc:'고용주 작성 — 채용 목적·업종코드 필수 기재',
-    fileName:'고용사유서_E74.hwp',
-    driveId:'2PLACEHOLDER_DRIVE_ID_고용사유서_replace_me',
+    icon:'📝', name:'고용사유서 양식', vi_name:'Biểu mẫu lý do tuyển dụng',
+    badge:'법무부 공식', desc:'고용주 작성 — 채용 목적·업종코드 필수 기재',
+    vi_desc:'Chủ sử dụng lao động điền — phải ghi mục đích tuyển dụng & mã ngành nghề',
+    fileName:'고용사유서_E74.hwp', driveId:'2PLACEHOLDER_DRIVE_ID_고용사유서_replace_me',
     official:'https://www.hikorea.go.kr/pt/InfoDetailR_kor.pt?catSeq=2&cmsSeq=189',
   },
   {
-    icon:'✍️', name:'고용주 추천서 양식', badge:'법무부 공식',
-    desc:'E-7-4 가산점 30점 — 가장 중요한 서류',
-    fileName:'고용주추천서_E74.hwp',
-    driveId:'3PLACEHOLDER_DRIVE_ID_추천서_replace_me',
+    icon:'✍️', name:'고용주 추천서 양식', vi_name:'Biểu mẫu thư giới thiệu của chủ',
+    badge:'법무부 공식', desc:'E-7-4 가산점 30점 — 가장 중요한 서류',
+    vi_desc:'Điểm cộng 30 điểm E-7-4 — hồ sơ quan trọng nhất',
+    fileName:'고용주추천서_E74.hwp', driveId:'3PLACEHOLDER_DRIVE_ID_추천서_replace_me',
     official:'https://www.hikorea.go.kr/pt/InfoDetailR_kor.pt?catSeq=2&cmsSeq=189',
   },
   {
-    icon:'💼', name:'재직확인서 (표준양식)', badge:'표준양식',
-    desc:'고용주 서명·법인 도장 필수, 근무 기간 명시',
-    fileName:'재직확인서_표준.hwp',
-    driveId:'4PLACEHOLDER_DRIVE_ID_재직확인서_replace_me',
+    icon:'💼', name:'재직확인서 (표준양식)', vi_name:'Xác nhận làm việc (biểu mẫu chuẩn)',
+    badge:'표준양식', desc:'고용주 서명·법인 도장 필수, 근무 기간 명시',
+    vi_desc:'Bắt buộc có chữ ký chủ & con dấu công ty, ghi rõ thời gian làm việc',
+    fileName:'재직확인서_표준.hwp', driveId:'4PLACEHOLDER_DRIVE_ID_재직확인서_replace_me',
     official:'https://www.moj.go.kr',
   },
   {
-    icon:'💰', name:'임금대장 양식 (세후 기준)', badge:'표준양식',
-    desc:'월별 실수령액 기재 — 세전 아님! 세후 기준',
-    fileName:'임금대장_세후기준.xlsx',
-    driveId:'5PLACEHOLDER_DRIVE_ID_임금대장_replace_me',
+    icon:'💰', name:'임금대장 양식 (세후 기준)', vi_name:'Biểu mẫu bảng lương (theo lương sau thuế)',
+    badge:'표준양식', desc:'월별 실수령액 기재 — 세전 아님! 세후 기준',
+    vi_desc:'Ghi lương thực nhận theo tháng — KHÔNG phải trước thuế! Phải sau thuế',
+    fileName:'임금대장_세후기준.xlsx', driveId:'5PLACEHOLDER_DRIVE_ID_임금대장_replace_me',
     official:'https://www.moj.go.kr',
   },
   {
-    icon:'🏦', name:'부가가치세 과세표준증명원', badge:'홈택스 발급',
-    desc:'홈택스 로그인 → 민원증명 → 즉시 발급',
-    fileName:null,
-    driveId:null,
-    official:'https://www.hometax.go.kr',
+    icon:'🏦', name:'부가가치세 과세표준증명원', vi_name:'Chứng minh tiêu chuẩn thuế VAT',
+    badge:'홈택스 발급', desc:'홈택스 로그인 → 민원증명 → 즉시 발급',
+    vi_desc:'Đăng nhập Hometax → Xác nhận dịch vụ công → Cấp ngay',
+    fileName:null, driveId:null, official:'https://www.hometax.go.kr',
   },
   {
-    icon:'📊', name:'소득세 납부확인서', badge:'홈택스 발급',
-    desc:'홈택스 또는 세무서 방문 발급 가능',
-    fileName:null,
-    driveId:null,
-    official:'https://www.hometax.go.kr',
+    icon:'📊', name:'소득세 납부확인서', vi_name:'Xác nhận nộp thuế thu nhập',
+    badge:'홈택스 발급', desc:'홈택스 또는 세무서 방문 발급 가능',
+    vi_desc:'Cấp qua Hometax hoặc đến văn phòng thuế',
+    fileName:null, driveId:null, official:'https://www.hometax.go.kr',
   },
   {
-    icon:'📋', name:'사업자등록증 사본', badge:'홈택스 발급',
-    desc:'홈택스 → 사업자등록증 즉시 출력',
-    fileName:null,
-    driveId:null,
-    official:'https://www.hometax.go.kr',
+    icon:'📋', name:'사업자등록증 사본', vi_name:'Bản sao giấy đăng ký kinh doanh',
+    badge:'홈택스 발급', desc:'홈택스 → 사업자등록증 즉시 출력',
+    vi_desc:'Hometax → In giấy đăng ký kinh doanh ngay',
+    fileName:null, driveId:null, official:'https://www.hometax.go.kr',
   },
 ];
 
-function DocsPage({ onBack }) {
+function DocsPage({ onBack, lang }) {
   return (
     <div style={{ background:'#F0F2F5' }} className="min-h-screen">
-      <BackHeader title="📋 필수 서류 다운로드" onBack={onBack} />
+      <BackHeader title={lang==='vi' ? '📋 Tải hồ sơ cần thiết' : '📋 필수 서류 다운로드'} onBack={onBack} />
       <div className="max-w-lg mx-auto px-4 py-4 pb-12">
 
         {/* 안내 배너 */}
         <div className="bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 mb-2 fade-in">
-          <p className="text-xs font-black text-blue-800 mb-1">📌 서류 받는 방법</p>
+          <p className="text-xs font-black text-blue-800 mb-1">📌 {lang==='vi' ? 'Cách nhận hồ sơ' : '서류 받는 방법'}</p>
           <p className="text-xs text-blue-700 word-keep">
-            ⬇️ <strong>다운로드</strong> 버튼: 구글 드라이브에서 파일 즉시 저장 (운영자가 준비한 양식)<br/>
-            🔗 <strong>공식 사이트</strong> 버튼: 법무부·홈택스 공식 페이지로 이동
+            {lang==='vi' ? <>
+              ⬇️ Nút <strong>Tải xuống</strong>: Lưu file ngay từ Google Drive (biểu mẫu do quản trị viên chuẩn bị)<br/>
+              🔗 Nút <strong>Trang chính thức</strong>: Chuyển đến trang Bộ Tư pháp / Hometax
+            </> : <>
+              ⬇️ <strong>다운로드</strong> 버튼: 구글 드라이브에서 파일 즉시 저장 (운영자가 준비한 양식)<br/>
+              🔗 <strong>공식 사이트</strong> 버튼: 법무부·홈택스 공식 페이지로 이동
+            </>}
           </p>
         </div>
 
         {/* 드라이브 ID 미설정 안내 (개발용) */}
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-4 fade-in">
           <p className="text-[10px] text-amber-700 word-keep">
-            🛠 <strong>운영자 안내:</strong> 구글 드라이브에 파일 업로드 후 <code className="bg-amber-100 px-1 rounded">driveId</code> 값을 실제 파일 ID로 교체하세요.
-            (<code className="bg-amber-100 px-1 rounded">PLACEHOLDER_DRIVE_ID_*</code> → 실제 ID)
+            🛠 <strong>{lang==='vi' ? 'Hướng dẫn quản trị viên' : '운영자 안내'}:</strong> {lang==='vi'
+              ? <>Sau khi tải file lên Google Drive, hãy thay giá trị <code className="bg-amber-100 px-1 rounded">driveId</code> bằng ID file thực tế.</>
+              : <>구글 드라이브에 파일 업로드 후 <code className="bg-amber-100 px-1 rounded">driveId</code> 값을 실제 파일 ID로 교체하세요.</>}
           </p>
         </div>
 
         <div className="flex flex-col gap-3">
           {DOCS.map((doc, i) => {
-            const driveUrl  = doc.driveId && !doc.driveId.includes('PLACEHOLDER')
+            const driveUrl = doc.driveId && !doc.driveId.includes('PLACEHOLDER')
               ? `https://drive.google.com/uc?export=download&id=${doc.driveId}`
               : null;
-            const isPlaceholder = doc.driveId?.includes('PLACEHOLDER');
             return (
               <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden fade-in">
                 {/* 서류 정보 */}
@@ -2341,34 +2399,31 @@ function DocsPage({ onBack }) {
                   <span className="text-3xl flex-shrink-0">{doc.icon}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      <p className="text-sm font-black text-gray-800 word-keep">{doc.name}</p>
+                      <p className="text-sm font-black text-gray-800 word-keep">{lang==='vi' && doc.vi_name ? doc.vi_name : doc.name}</p>
                       <span className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded-full flex-shrink-0">{doc.badge}</span>
                     </div>
-                    <p className="text-xs text-gray-500 word-keep">{doc.desc}</p>
+                    <p className="text-xs text-gray-500 word-keep">{lang==='vi' && doc.vi_desc ? doc.vi_desc : doc.desc}</p>
                   </div>
                 </div>
 
                 {/* 버튼 영역 */}
                 <div className="px-4 pb-3 flex gap-2 border-t border-gray-50 pt-3">
                   {doc.driveId ? (
-                    /* 구글 드라이브 다운로드 버튼 */
                     driveUrl ? (
                       <a href={driveUrl} download={doc.fileName}
                         className="flex-1 bg-blue-700 text-white text-xs font-black py-2.5 rounded-xl flex items-center justify-center gap-1.5 tap transition active:bg-blue-800">
-                        ⬇️ 다운로드
+                        ⬇️ {lang==='vi' ? 'Tải xuống' : '다운로드'}
                       </a>
                     ) : (
-                      /* Placeholder 상태: 비활성 버튼 + 안내 */
                       <button disabled
                         className="flex-1 bg-gray-100 text-gray-400 text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-not-allowed">
-                        ⬇️ 준비 중 (드라이브 ID 미설정)
+                        ⬇️ {lang==='vi' ? 'Đang chuẩn bị...' : '준비 중'}
                       </button>
                     )
                   ) : null}
-                  {/* 공식 사이트 버튼 */}
                   <a href={doc.official} target="_blank" rel="noopener noreferrer"
                     className={`text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 tap transition border ${doc.driveId ? 'flex-shrink-0 px-4 border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-600' : 'flex-1 border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100'}`}>
-                    🔗 공식 사이트
+                    🔗 {lang==='vi' ? 'Trang chính thức' : '공식 사이트'}
                   </a>
                 </div>
               </div>
@@ -2377,11 +2432,15 @@ function DocsPage({ onBack }) {
         </div>
 
         <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mt-4 fade-in">
-          <p className="text-xs text-red-700 word-keep">⚠️ 관할 출입국마다 추가 서류를 요구할 수 있습니다. 방문 전 반드시 전화로 확인하세요.</p>
+          <p className="text-xs text-red-700 word-keep">
+            {lang==='vi'
+              ? '⚠️ Mỗi Cục XNC có thể yêu cầu thêm hồ sơ. Hãy gọi điện xác nhận trước khi đến.'
+              : '⚠️ 관할 출입국마다 추가 서류를 요구할 수 있습니다. 방문 전 반드시 전화로 확인하세요.'}
+          </p>
         </div>
         <button onClick={onBack}
           className="mt-6 w-full bg-red-600 text-white font-black py-4 rounded-2xl text-sm tap transition">
-          ← 메인으로 돌아가기
+          {lang==='vi' ? '← Về trang chính' : '← 메인으로 돌아가기'}
         </button>
       </div>
     </div>

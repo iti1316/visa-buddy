@@ -1880,45 +1880,28 @@ function VisaTreeSection({ lang, visaType, onChangeType, posts, openBoard, activ
           <p className="text-[9px] text-gray-400 word-keep">💡 {tree.note[lang==='vi'?'vi':'ko']}</p>
         </div>
 
-        {/* 게시판 바로가기 */}
+        {/* 비자 전문 게시판 */}
         {posts && (
-          <div className="px-3 pb-3 pt-1 grid grid-cols-2 gap-2 border-t border-gray-100">
+          <div className="px-3 pb-3 pt-1 border-t border-gray-100">
             <button
               onClick={() => openBoard('visa')}
-              className={`rounded-xl tap transition-all overflow-hidden text-left
+              className={`w-full rounded-xl tap transition-all overflow-hidden text-left
                 ${activeBoard === 'visa'
                   ? 'bg-gradient-to-br from-blue-700 to-blue-500 ring-2 ring-blue-300'
                   : 'bg-gradient-to-br from-blue-600 to-blue-400'}`}>
-              <div className="px-3 py-3">
-                <span className="text-lg block mb-1">📋</span>
-                <p className="text-[11px] font-black text-white leading-tight">
-                  {lang==='vi' ? 'Bảng Visa' : '비자 전문 게시판'}
-                </p>
-                <p className="text-[9px] text-white/70 mt-0.5">
-                  {posts.filter(p=>p.cat!=='talk').length}{lang==='vi' ? ' bài' : '개'}
-                  <span className={`ml-1 transition-transform inline-block ${activeBoard==='visa' ? 'rotate-180' : ''}`}>⌄</span>
-                </p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => openBoard('talk')}
-              className={`rounded-xl tap transition-all overflow-hidden text-left
-                ${activeBoard === 'talk'
-                  ? 'bg-gradient-to-br from-green-600 to-emerald-500 ring-2 ring-green-300'
-                  : 'bg-gradient-to-br from-green-500 to-teal-400'}`}>
-              <div className="px-3 py-3">
-                <span className="text-lg block mb-1">💬</span>
-                <p className="text-[11px] font-black text-white leading-tight">
-                  {lang==='vi' ? 'Góc Tán Gẫu' : '자유 토크방'}
-                </p>
-                <p className="text-[9px] text-white/70 mt-0.5">
-                  {posts.filter(p=>p.cat==='talk').length}{lang==='vi' ? ' bài' : '개'}
-                  {posts.filter(p=>p.cat==='talk').some(p=>p.isNew) && (
-                    <span className="ml-1 bg-white text-green-700 font-black px-1 rounded-full text-[8px]">NEW</span>
-                  )}
-                  <span className={`ml-1 transition-transform inline-block ${activeBoard==='talk' ? 'rotate-180' : ''}`}>⌄</span>
-                </p>
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">📋</span>
+                  <div>
+                    <p className="text-[12px] font-black text-white leading-tight">
+                      {lang==='vi' ? 'Bảng Visa chuyên biệt' : '비자 전문 게시판'}
+                    </p>
+                    <p className="text-[9px] text-white/70 mt-0.5">
+                      {posts.filter(p=>p.cat!=='talk').length}{lang==='vi' ? ' bài' : '개'}
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-white text-base font-black transition-transform inline-block ${activeBoard==='visa' ? 'rotate-180' : ''}`}>⌄</span>
               </div>
             </button>
           </div>

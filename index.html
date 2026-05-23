@@ -1721,7 +1721,7 @@ function VisaTypeSelector({ lang, onSelect }) {
 }
 
 /* ── 비자 여정 시각화 섹션 ── */
-function VisaTreeSection({ lang, visaType, onChangeType }) {
+function VisaTreeSection({ lang, visaType, onChangeType, posts, openBoard, activeBoard }) {
   const tree = VISA_TREES[visaType];
   const [currentStep, setCurrentStep] = useState(() => localStorage.getItem(VISA_STEP_STORE) || null);
 
@@ -1831,6 +1831,50 @@ function VisaTreeSection({ lang, visaType, onChangeType }) {
         <div className="px-4 py-2 border-t border-gray-50">
           <p className="text-[9px] text-gray-400 word-keep">💡 {tree.note[lang==='vi'?'vi':'ko']}</p>
         </div>
+
+        {/* 게시판 바로가기 */}
+        {posts && (
+          <div className="px-3 pb-3 pt-1 grid grid-cols-2 gap-2 border-t border-gray-100">
+            <button
+              onClick={() => openBoard('visa')}
+              className={`rounded-xl tap transition-all overflow-hidden text-left
+                ${activeBoard === 'visa'
+                  ? 'bg-gradient-to-br from-blue-700 to-blue-500 ring-2 ring-blue-300'
+                  : 'bg-gradient-to-br from-blue-600 to-blue-400'}`}>
+              <div className="px-3 py-3">
+                <span className="text-lg block mb-1">📋</span>
+                <p className="text-[11px] font-black text-white leading-tight">
+                  {lang==='vi' ? 'Bảng Visa' : '비자 전문 게시판'}
+                </p>
+                <p className="text-[9px] text-white/70 mt-0.5">
+                  {posts.filter(p=>p.cat!=='talk').length}{lang==='vi' ? ' bài' : '개'}
+                  <span className={`ml-1 transition-transform inline-block ${activeBoard==='visa' ? 'rotate-180' : ''}`}>⌄</span>
+                </p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => openBoard('talk')}
+              className={`rounded-xl tap transition-all overflow-hidden text-left
+                ${activeBoard === 'talk'
+                  ? 'bg-gradient-to-br from-green-600 to-emerald-500 ring-2 ring-green-300'
+                  : 'bg-gradient-to-br from-green-500 to-teal-400'}`}>
+              <div className="px-3 py-3">
+                <span className="text-lg block mb-1">💬</span>
+                <p className="text-[11px] font-black text-white leading-tight">
+                  {lang==='vi' ? 'Góc Tán Gẫu' : '자유 토크방'}
+                </p>
+                <p className="text-[9px] text-white/70 mt-0.5">
+                  {posts.filter(p=>p.cat==='talk').length}{lang==='vi' ? ' bài' : '개'}
+                  {posts.filter(p=>p.cat==='talk').some(p=>p.isNew) && (
+                    <span className="ml-1 bg-white text-green-700 font-black px-1 rounded-full text-[8px]">NEW</span>
+                  )}
+                  <span className={`ml-1 transition-transform inline-block ${activeBoard==='talk' ? 'rotate-180' : ''}`}>⌄</span>
+                </p>
+              </div>
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -1900,66 +1944,15 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
 
       <main className="max-w-lg mx-auto pb-20">
 
-        {/* ── 비자 여정 시각화 ── */}
-        <VisaTreeSection lang={lang} visaType={visaType} onChangeType={() => onSetVisaType(null)} />
-
-        {/* ── 게시판 2열 그리드 ── */}
-        <section className="mt-3 px-3">
-          <div className="grid grid-cols-2 gap-2.5">
-
-            {/* 비자 전문 게시판 버튼 */}
-            <button
-              onClick={() => openBoard('visa')}
-              className={`rounded-2xl shadow-md tap transition-all overflow-hidden text-left
-                ${activeBoard === 'visa'
-                  ? 'bg-gradient-to-br from-blue-700 to-blue-500 ring-4 ring-blue-300'
-                  : 'bg-gradient-to-br from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500'}`}>
-              <div className="px-4 py-4">
-                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-xl mb-2">📋</div>
-                <p className="text-[12px] font-black text-white leading-tight">
-                  {lang==='vi' ? 'Bảng Visa' : '비자 전문 게시판'}
-                </p>
-                <p className="text-[9px] text-white/75 mt-1 leading-tight">
-                  {lang==='vi' ? 'Hỏi đáp · Kinh nghiệm' : '합격후기 · SOS · 참교육'}
-                </p>
-              </div>
-              <div className="bg-black/15 px-4 py-1.5 flex items-center justify-between">
-                <span className="text-[9px] text-white/80 font-bold">
-                  {posts.filter(p=>p.cat!=='talk').length}{lang==='vi' ? ' bài' : '개'}
-                </span>
-                <span className={`text-white text-base font-black transition-transform duration-300 ${activeBoard==='visa' ? 'rotate-180' : ''}`}>⌄</span>
-              </div>
-            </button>
-
-            {/* 자유 토크방 버튼 */}
-            <button
-              onClick={() => openBoard('talk')}
-              className={`rounded-2xl shadow-md tap transition-all overflow-hidden text-left
-                ${activeBoard === 'talk'
-                  ? 'bg-gradient-to-br from-green-600 to-emerald-500 ring-4 ring-green-300'
-                  : 'bg-gradient-to-br from-green-500 to-teal-400 hover:from-green-600 hover:to-teal-500'}`}>
-              <div className="px-4 py-4">
-                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-xl mb-2">💬</div>
-                <p className="text-[12px] font-black text-white leading-tight">
-                  {lang==='vi' ? 'Góc Tán Gẫu' : '자유 토크방'}
-                </p>
-                <p className="text-[9px] text-white/75 mt-1 leading-tight">
-                  {lang==='vi' ? 'Trò chuyện · Đời thường' : '비자 외 일상 · 자유 수다'}
-                </p>
-              </div>
-              <div className="bg-black/15 px-4 py-1.5 flex items-center justify-between">
-                <span className="text-[9px] text-white/80 font-bold">
-                  {posts.filter(p=>p.cat==='talk').length}{lang==='vi' ? ' bài' : '개'}
-                  {posts.filter(p=>p.cat==='talk').some(p=>p.isNew) && (
-                    <span className="ml-1 bg-white text-green-700 font-black px-1 rounded-full text-[8px]">NEW</span>
-                  )}
-                </span>
-                <span className={`text-white text-base font-black transition-transform duration-300 ${activeBoard==='talk' ? 'rotate-180' : ''}`}>⌄</span>
-              </div>
-            </button>
-
-          </div>
-        </section>
+        {/* ── 비자 여정 시각화 + 게시판 버튼 ── */}
+        <VisaTreeSection
+          lang={lang}
+          visaType={visaType}
+          onChangeType={() => onSetVisaType(null)}
+          posts={posts}
+          openBoard={openBoard}
+          activeBoard={activeBoard}
+        />
 
         {/* ── 게시판 펼침 영역 ── */}
         <div ref={boardRef} />

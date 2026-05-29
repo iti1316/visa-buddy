@@ -1673,10 +1673,20 @@ const VISA_TREES = {
 };
 
 /* ── 비자 루트 선택 (온보딩) ── */
-function VisaTypeSelector({ lang, onSelect, posts, nav, openBoard, activeBoard, boardRef, onDeletePost, onUpdatePost, onAddComment, onDeleteComment }) {
+function VisaTypeSelector({ lang, onSelect, posts, nav, openBoard, activeBoard, boardRef, onDeletePost, onUpdatePost, onAddComment, onDeleteComment, toggleLang }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto" style={{background:'linear-gradient(160deg,#1e3a8a 0%,#1e40af 100%)'}}>
       <div className="flex-1 px-4 pt-12 pb-10 max-w-lg mx-auto w-full">
+        {/* 언어 토글 */}
+        <div className="flex justify-end mb-4">
+          <button onClick={toggleLang}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/15 border border-white/30 tap transition">
+            <span className="text-base leading-none">{lang === 'vi' ? '🇻🇳' : '🇰🇷'}</span>
+            <span className="text-[10px] font-black text-white">{lang === 'vi' ? 'VN' : 'KR'}</span>
+            <span className="text-[9px] text-white/50">→</span>
+            <span className="text-[10px] font-bold text-white/60">{lang === 'vi' ? 'KR' : 'VN'}</span>
+          </button>
+        </div>
         <div className="text-center mb-8">
           <div className="text-5xl mb-4">🛂</div>
           <h1 className="text-2xl font-black text-white leading-tight">
@@ -1769,7 +1779,7 @@ function VisaTypeSelector({ lang, onSelect, posts, nav, openBoard, activeBoard, 
 }
 
 /* ── 비자 여정 시각화 섹션 ── */
-function VisaTreeSection({ lang, visaType, onChangeType, posts, openBoard, activeBoard }) {
+function VisaTreeSection({ lang, visaType, onChangeType }) {
   const tree = VISA_TREES[visaType];
   const [currentStep, setCurrentStep] = useState(() => localStorage.getItem(VISA_STEP_STORE) || null);
 
@@ -1880,32 +1890,6 @@ function VisaTreeSection({ lang, visaType, onChangeType, posts, openBoard, activ
           <p className="text-[9px] text-gray-400 word-keep">💡 {tree.note[lang==='vi'?'vi':'ko']}</p>
         </div>
 
-        {/* 비자 전문 게시판 */}
-        {posts && (
-          <div className="px-3 pb-3 pt-1 border-t border-gray-100">
-            <button
-              onClick={() => openBoard('visa')}
-              className={`w-full rounded-xl tap transition-all overflow-hidden text-left
-                ${activeBoard === 'visa'
-                  ? 'bg-gradient-to-br from-blue-700 to-blue-500 ring-2 ring-blue-300'
-                  : 'bg-gradient-to-br from-blue-600 to-blue-400'}`}>
-              <div className="px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">📋</span>
-                  <div>
-                    <p className="text-[12px] font-black text-white leading-tight">
-                      {lang==='vi' ? 'Bảng Visa chuyên biệt' : '비자 전문 게시판'}
-                    </p>
-                    <p className="text-[9px] text-white/70 mt-0.5">
-                      {posts.filter(p=>p.cat!=='talk').length}{lang==='vi' ? ' bài' : '개'}
-                    </p>
-                  </div>
-                </div>
-                <span className={`text-white text-base font-black transition-transform inline-block ${activeBoard==='visa' ? 'rotate-180' : ''}`}>⌄</span>
-              </div>
-            </button>
-          </div>
-        )}
       </div>
     </section>
   );
@@ -1931,7 +1915,7 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
 
   /* visaType 없으면 온보딩 선택 화면 */
   if (!visaType) {
-    return <VisaTypeSelector lang={lang} onSelect={onSetVisaType} posts={posts} nav={nav} openBoard={openBoard} activeBoard={activeBoard} boardRef={boardRef} onDeletePost={onDeletePost} onUpdatePost={onUpdatePost} onAddComment={onAddComment} onDeleteComment={onDeleteComment} />;
+    return <VisaTypeSelector lang={lang} onSelect={onSetVisaType} posts={posts} nav={nav} openBoard={openBoard} activeBoard={activeBoard} boardRef={boardRef} onDeletePost={onDeletePost} onUpdatePost={onUpdatePost} onAddComment={onAddComment} onDeleteComment={onDeleteComment} toggleLang={toggleLang} />;
   }
 
   const gridBtns = GRID_BTNS_MAP[visaType] || GRID_BTNS_MAP.worker;
@@ -1975,40 +1959,12 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
 
       <main className="max-w-lg mx-auto pb-20">
 
-        {/* ── 비자 여정 시각화 + 게시판 버튼 ── */}
+        {/* ── 비자 여정 시각화 ── */}
         <VisaTreeSection
           lang={lang}
           visaType={visaType}
           onChangeType={() => onSetVisaType(null)}
-          posts={posts}
-          openBoard={openBoard}
-          activeBoard={activeBoard}
         />
-
-        {/* ── 게시판 펼침 영역 ── */}
-        <div ref={boardRef} />
-        {activeBoard === 'talk' && (
-          <TalkListView
-            posts={posts}
-            nav={nav}
-            lang={lang}
-            onDeletePost={onDeletePost}
-            onUpdatePost={onUpdatePost}
-            onAddComment={onAddComment}
-            onDeleteComment={onDeleteComment}
-            onClose={() => setActiveBoard(null)}
-          />
-        )}
-        {activeBoard === 'visa' && (
-          <VisaBoardSection
-            posts={posts}
-            nav={nav}
-            lang={lang}
-            onDeletePost={onDeletePost}
-            onUpdatePost={onUpdatePost}
-            onAddComment={onAddComment}
-            onDeleteComment={onDeleteComment} />
-        )}
 
         {/* ── 퀵 메뉴 그리드 ── */}
         <section className="mt-3 bg-white px-4 pt-4 pb-5 shadow-sm">
@@ -2053,16 +2009,23 @@ function HomePage({ nav, posts, lang, onAddPost, onDeletePost, onUpdatePost, onA
           </div>
         </section>
 
+        {/* ── 비자 전문 게시판 (상시 오픈) ── */}
+        <VisaBoardSection
+          posts={posts}
+          nav={nav}
+          lang={lang}
+          onDeletePost={onDeletePost}
+          onUpdatePost={onUpdatePost}
+          onAddComment={onAddComment}
+          onDeleteComment={onDeleteComment} />
+
       </main>
 
       {/* FAB */}
       <button
-        onClick={() => nav({ page:'write', param: activeBoard === 'talk' ? 'talk' : 'hall' })}
-        className={`fixed bottom-6 right-4 text-white font-black text-sm px-5 py-3.5 rounded-full shadow-xl z-40 flex items-center gap-2 tap transition
-          ${activeBoard === 'talk' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-700 hover:bg-blue-800'}`}>
-        {activeBoard === 'talk'
-          ? (lang==='vi' ? '✏️ Viết' : '✏️ 글쓰기')
-          : L.writeFab}
+        onClick={() => nav({ page:'write', param:'hall' })}
+        className="fixed bottom-6 right-4 text-white font-black text-sm px-5 py-3.5 rounded-full shadow-xl z-40 flex items-center gap-2 tap transition bg-blue-700 hover:bg-blue-800">
+        {L.writeFab}
       </button>
     </div>
   );
